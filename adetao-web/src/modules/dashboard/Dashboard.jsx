@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 
 import Sidebar from '../../modules/Sidebar/Sidebar'
 import Topbar from '../../modules/Topbar/Topbar'
+import Arqueros from '../../modules/Arqueros/Arqueros'
 
 import './Dashboard.css'
 
@@ -61,6 +62,14 @@ function Dashboard({ session }) {
         />
       )
     }
+
+    if (activeMenu === 'arqueros') {
+  return (
+    <Arqueros
+      onDataChange={cargarDatos}
+    />
+  )
+}
 
     return (
       <div className="module-placeholder">
