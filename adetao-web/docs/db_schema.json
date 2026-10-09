@@ -1,0 +1,669 @@
+[
+  {
+    "esquema": {
+      "enums": [
+        {
+          "nombre": "inventory_status",
+          "valores": "disponible, prestado, mantenimiento, dañado, No disponible"
+        },
+        {
+          "nombre": "payment_status",
+          "valores": "al_dia, pendiente, vencido"
+        },
+        {
+          "nombre": "record_status",
+          "valores": "activo, inactivo"
+        },
+        {
+          "nombre": "user_role",
+          "valores": "administrador, usuario, profesor"
+        }
+      ],
+      "rls": [
+        {
+          "tabla": "clubes",
+          "rls_activo": true
+        },
+        {
+          "tabla": "tipos_arco",
+          "rls_activo": true
+        },
+        {
+          "tabla": "perfiles",
+          "rls_activo": true
+        },
+        {
+          "tabla": "arqueros",
+          "rls_activo": true
+        },
+        {
+          "tabla": "categorias",
+          "rls_activo": true
+        },
+        {
+          "tabla": "inventario",
+          "rls_activo": true
+        },
+        {
+          "tabla": "piezas",
+          "rls_activo": true
+        },
+        {
+          "tabla": "asignaciones",
+          "rls_activo": true
+        },
+        {
+          "tabla": "asignaciones_piezas",
+          "rls_activo": true
+        },
+        {
+          "tabla": "pagos",
+          "rls_activo": true
+        }
+      ],
+      "policies": [
+        {
+          "tablename": "clubes",
+          "policyname": "Usuarios autenticados pueden actualizar clubes",
+          "cmd": "UPDATE",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "tablename": "clubes",
+          "policyname": "Usuarios autenticados pueden insertar clubes",
+          "cmd": "INSERT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": null,
+          "with_check": "true"
+        },
+        {
+          "tablename": "clubes",
+          "policyname": "Usuarios autenticados pueden consultar clubes",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "tablename": "tipos_arco",
+          "policyname": "Usuarios autenticados pueden modificar tipos de arco",
+          "cmd": "ALL",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "tablename": "tipos_arco",
+          "policyname": "Usuarios autenticados pueden consultar tipos de arco",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "tablename": "perfiles",
+          "policyname": "Usuarios pueden consultar su propio perfil",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "(id = auth.uid())",
+          "with_check": null
+        },
+        {
+          "tablename": "arqueros",
+          "policyname": "Usuarios autenticados pueden eliminar arqueros",
+          "cmd": "DELETE",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "tablename": "arqueros",
+          "policyname": "Usuarios autenticados pueden actualizar arqueros",
+          "cmd": "UPDATE",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "tablename": "arqueros",
+          "policyname": "Usuarios autenticados pueden insertar arqueros",
+          "cmd": "INSERT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": null,
+          "with_check": "true"
+        },
+        {
+          "tablename": "arqueros",
+          "policyname": "Usuarios autenticados pueden consultar arqueros",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "tablename": "categorias",
+          "policyname": "Usuarios autenticados pueden modificar categorias",
+          "cmd": "ALL",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "tablename": "categorias",
+          "policyname": "Usuarios autenticados pueden consultar categorias",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "tablename": "inventario",
+          "policyname": "Usuarios autenticados pueden modificar inventario",
+          "cmd": "ALL",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "tablename": "inventario",
+          "policyname": "Usuarios autenticados pueden consultar inventario",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "tablename": "piezas",
+          "policyname": "Usuarios autenticados pueden modificar piezas",
+          "cmd": "ALL",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "tablename": "piezas",
+          "policyname": "Usuarios autenticados pueden consultar piezas",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "tablename": "asignaciones",
+          "policyname": "Usuarios autenticados pueden modificar asignaciones",
+          "cmd": "ALL",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "tablename": "asignaciones",
+          "policyname": "Usuarios autenticados pueden consultar asignaciones",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "tablename": "asignaciones_piezas",
+          "policyname": "Usuarios autenticados pueden modificar asignaciones piezas",
+          "cmd": "ALL",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "tablename": "asignaciones_piezas",
+          "policyname": "Usuarios autenticados pueden consultar asignaciones piezas",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "tablename": "pagos",
+          "policyname": "Usuarios autenticados pueden modificar pagos",
+          "cmd": "ALL",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "tablename": "pagos",
+          "policyname": "Usuarios autenticados pueden consultar pagos",
+          "cmd": "SELECT",
+          "roles": [
+            "authenticated"
+          ],
+          "qual": "true",
+          "with_check": null
+        }
+      ],
+      "triggers": [
+        {
+          "esquema": "public",
+          "tabla": "clubes",
+          "trigger": "trg_clubes_updated_at",
+          "definicion": "CREATE TRIGGER trg_clubes_updated_at BEFORE UPDATE ON public.clubes FOR EACH ROW EXECUTE FUNCTION actualizar_updated_at()"
+        },
+        {
+          "esquema": "public",
+          "tabla": "tipos_arco",
+          "trigger": "trg_tipos_arco_updated_at",
+          "definicion": "CREATE TRIGGER trg_tipos_arco_updated_at BEFORE UPDATE ON public.tipos_arco FOR EACH ROW EXECUTE FUNCTION actualizar_updated_at()"
+        },
+        {
+          "esquema": "public",
+          "tabla": "perfiles",
+          "trigger": "trg_perfiles_updated_at",
+          "definicion": "CREATE TRIGGER trg_perfiles_updated_at BEFORE UPDATE ON public.perfiles FOR EACH ROW EXECUTE FUNCTION actualizar_updated_at()"
+        },
+        {
+          "esquema": "public",
+          "tabla": "arqueros",
+          "trigger": "trg_arqueros_updated_at",
+          "definicion": "CREATE TRIGGER trg_arqueros_updated_at BEFORE UPDATE ON public.arqueros FOR EACH ROW EXECUTE FUNCTION actualizar_updated_at()"
+        },
+        {
+          "esquema": "public",
+          "tabla": "categorias",
+          "trigger": "trg_categorias_updated_at",
+          "definicion": "CREATE TRIGGER trg_categorias_updated_at BEFORE UPDATE ON public.categorias FOR EACH ROW EXECUTE FUNCTION actualizar_updated_at()"
+        },
+        {
+          "esquema": "public",
+          "tabla": "inventario",
+          "trigger": "trg_inventario_updated_at",
+          "definicion": "CREATE TRIGGER trg_inventario_updated_at BEFORE UPDATE ON public.inventario FOR EACH ROW EXECUTE FUNCTION actualizar_updated_at()"
+        },
+        {
+          "esquema": "public",
+          "tabla": "piezas",
+          "trigger": "trg_piezas_updated_at",
+          "definicion": "CREATE TRIGGER trg_piezas_updated_at BEFORE UPDATE ON public.piezas FOR EACH ROW EXECUTE FUNCTION actualizar_updated_at()"
+        },
+        {
+          "esquema": "public",
+          "tabla": "asignaciones",
+          "trigger": "trg_asignaciones_updated_at",
+          "definicion": "CREATE TRIGGER trg_asignaciones_updated_at BEFORE UPDATE ON public.asignaciones FOR EACH ROW EXECUTE FUNCTION actualizar_updated_at()"
+        },
+        {
+          "esquema": "public",
+          "tabla": "asignaciones_piezas",
+          "trigger": "trg_asignaciones_piezas_updated_at",
+          "definicion": "CREATE TRIGGER trg_asignaciones_piezas_updated_at BEFORE UPDATE ON public.asignaciones_piezas FOR EACH ROW EXECUTE FUNCTION actualizar_updated_at()"
+        },
+        {
+          "esquema": "auth",
+          "tabla": "users",
+          "trigger": "on_auth_user_created",
+          "definicion": "CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION crear_perfil_usuario()"
+        }
+      ],
+      "funciones": [
+        {
+          "nombre": "rls_auto_enable",
+          "definicion": "CREATE OR REPLACE FUNCTION public.rls_auto_enable()\n RETURNS event_trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n  cmd record;\nBEGIN\n  FOR cmd IN\n    SELECT *\n    FROM pg_event_trigger_ddl_commands()\n    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')\n      AND object_type IN ('table','partitioned table')\n  LOOP\n     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN\n      BEGIN\n        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);\n        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;\n      EXCEPTION\n        WHEN OTHERS THEN\n          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;\n      END;\n     ELSE\n        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;\n     END IF;\n  END LOOP;\nEND;\n$function$\n"
+        },
+        {
+          "nombre": "actualizar_updated_at",
+          "definicion": "CREATE OR REPLACE FUNCTION public.actualizar_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nbegin\r\n    new.updated_at = now();\r\n    return new;\r\nend;\r\n$function$\n"
+        },
+        {
+          "nombre": "crear_perfil_usuario",
+          "definicion": "CREATE OR REPLACE FUNCTION public.crear_perfil_usuario()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nbegin\r\n    insert into public.perfiles (\r\n        id,\r\n        nombre,\r\n        correo,\r\n        rol\r\n    )\r\n    values (\r\n        new.id,\r\n        coalesce(\r\n            new.raw_user_meta_data ->> 'nombre',\r\n            new.email\r\n        ),\r\n        new.email,\r\n        'usuario'\r\n    );\r\n\r\n    return new;\r\nend;\r\n$function$\n"
+        }
+      ],
+      "indices": [
+        {
+          "tablename": "clubes",
+          "indexname": "clubes_pkey",
+          "indexdef": "CREATE UNIQUE INDEX clubes_pkey ON public.clubes USING btree (id)"
+        },
+        {
+          "tablename": "clubes",
+          "indexname": "clubes_nombre_unique",
+          "indexdef": "CREATE UNIQUE INDEX clubes_nombre_unique ON public.clubes USING btree (nombre)"
+        },
+        {
+          "tablename": "tipos_arco",
+          "indexname": "tipos_arco_pkey",
+          "indexdef": "CREATE UNIQUE INDEX tipos_arco_pkey ON public.tipos_arco USING btree (id)"
+        },
+        {
+          "tablename": "tipos_arco",
+          "indexname": "tipos_arco_nombre_unique",
+          "indexdef": "CREATE UNIQUE INDEX tipos_arco_nombre_unique ON public.tipos_arco USING btree (nombre)"
+        },
+        {
+          "tablename": "perfiles",
+          "indexname": "perfiles_pkey",
+          "indexdef": "CREATE UNIQUE INDEX perfiles_pkey ON public.perfiles USING btree (id)"
+        },
+        {
+          "tablename": "perfiles",
+          "indexname": "perfiles_correo_unique",
+          "indexdef": "CREATE UNIQUE INDEX perfiles_correo_unique ON public.perfiles USING btree (correo)"
+        },
+        {
+          "tablename": "arqueros",
+          "indexname": "arqueros_pkey",
+          "indexdef": "CREATE UNIQUE INDEX arqueros_pkey ON public.arqueros USING btree (id)"
+        },
+        {
+          "tablename": "arqueros",
+          "indexname": "arqueros_identificacion_unique",
+          "indexdef": "CREATE UNIQUE INDEX arqueros_identificacion_unique ON public.arqueros USING btree (identificacion)"
+        },
+        {
+          "tablename": "arqueros",
+          "indexname": "idx_arqueros_club",
+          "indexdef": "CREATE INDEX idx_arqueros_club ON public.arqueros USING btree (club_id)"
+        },
+        {
+          "tablename": "arqueros",
+          "indexname": "idx_arqueros_tipo_arco",
+          "indexdef": "CREATE INDEX idx_arqueros_tipo_arco ON public.arqueros USING btree (tipo_arco_id)"
+        },
+        {
+          "tablename": "arqueros",
+          "indexname": "idx_arqueros_estado",
+          "indexdef": "CREATE INDEX idx_arqueros_estado ON public.arqueros USING btree (estado)"
+        },
+        {
+          "tablename": "arqueros",
+          "indexname": "idx_arqueros_pago",
+          "indexdef": "CREATE INDEX idx_arqueros_pago ON public.arqueros USING btree (estado_pago)"
+        },
+        {
+          "tablename": "categorias",
+          "indexname": "categorias_pkey",
+          "indexdef": "CREATE UNIQUE INDEX categorias_pkey ON public.categorias USING btree (id)"
+        },
+        {
+          "tablename": "categorias",
+          "indexname": "categorias_nombre_unique",
+          "indexdef": "CREATE UNIQUE INDEX categorias_nombre_unique ON public.categorias USING btree (nombre)"
+        },
+        {
+          "tablename": "inventario",
+          "indexname": "inventario_pkey",
+          "indexdef": "CREATE UNIQUE INDEX inventario_pkey ON public.inventario USING btree (id)"
+        },
+        {
+          "tablename": "inventario",
+          "indexname": "inventario_codigo_unique",
+          "indexdef": "CREATE UNIQUE INDEX inventario_codigo_unique ON public.inventario USING btree (codigo)"
+        },
+        {
+          "tablename": "inventario",
+          "indexname": "idx_inventario_tipo",
+          "indexdef": "CREATE INDEX idx_inventario_tipo ON public.inventario USING btree (tipo)"
+        },
+        {
+          "tablename": "inventario",
+          "indexname": "idx_inventario_estado",
+          "indexdef": "CREATE INDEX idx_inventario_estado ON public.inventario USING btree (estado)"
+        },
+        {
+          "tablename": "piezas",
+          "indexname": "piezas_pkey",
+          "indexdef": "CREATE UNIQUE INDEX piezas_pkey ON public.piezas USING btree (id)"
+        },
+        {
+          "tablename": "asignaciones",
+          "indexname": "asignaciones_pkey",
+          "indexdef": "CREATE UNIQUE INDEX asignaciones_pkey ON public.asignaciones USING btree (id)"
+        },
+        {
+          "tablename": "asignaciones",
+          "indexname": "idx_asignaciones_arquero",
+          "indexdef": "CREATE INDEX idx_asignaciones_arquero ON public.asignaciones USING btree (arquero_id)"
+        },
+        {
+          "tablename": "asignaciones",
+          "indexname": "idx_asignaciones_inventario",
+          "indexdef": "CREATE INDEX idx_asignaciones_inventario ON public.asignaciones USING btree (inventario_id)"
+        },
+        {
+          "tablename": "asignaciones_piezas",
+          "indexname": "asignaciones_piezas_pkey",
+          "indexdef": "CREATE UNIQUE INDEX asignaciones_piezas_pkey ON public.asignaciones_piezas USING btree (id)"
+        },
+        {
+          "tablename": "pagos",
+          "indexname": "pagos_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pagos_pkey ON public.pagos USING btree (id)"
+        },
+        {
+          "tablename": "pagos",
+          "indexname": "idx_pagos_arquero",
+          "indexdef": "CREATE INDEX idx_pagos_arquero ON public.pagos USING btree (arquero_id)"
+        },
+        {
+          "tablename": "pagos",
+          "indexname": "idx_pagos_fecha",
+          "indexdef": "CREATE INDEX idx_pagos_fecha ON public.pagos USING btree (fecha_pago)"
+        }
+      ],
+      "constraints": [
+        {
+          "tabla": "arqueros",
+          "conname": "arqueros_club_id_fkey",
+          "definicion": "FOREIGN KEY (club_id) REFERENCES clubes(id) ON UPDATE CASCADE ON DELETE SET NULL"
+        },
+        {
+          "tabla": "arqueros",
+          "conname": "arqueros_identificacion_unique",
+          "definicion": "UNIQUE (identificacion)"
+        },
+        {
+          "tabla": "arqueros",
+          "conname": "arqueros_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "tabla": "arqueros",
+          "conname": "arqueros_tipo_arco_id_fkey",
+          "definicion": "FOREIGN KEY (tipo_arco_id) REFERENCES tipos_arco(id) ON UPDATE CASCADE ON DELETE SET NULL"
+        },
+        {
+          "tabla": "asignaciones",
+          "conname": "asignaciones_arquero_id_fkey",
+          "definicion": "FOREIGN KEY (arquero_id) REFERENCES arqueros(id) ON UPDATE CASCADE ON DELETE CASCADE"
+        },
+        {
+          "tabla": "asignaciones",
+          "conname": "asignaciones_cantidad_check",
+          "definicion": "CHECK ((cantidad > 0))"
+        },
+        {
+          "tabla": "asignaciones",
+          "conname": "asignaciones_inventario_id_fkey",
+          "definicion": "FOREIGN KEY (inventario_id) REFERENCES inventario(id) ON UPDATE CASCADE ON DELETE RESTRICT"
+        },
+        {
+          "tabla": "asignaciones_piezas",
+          "conname": "asignaciones_piezas_arquero_id_fkey",
+          "definicion": "FOREIGN KEY (arquero_id) REFERENCES arqueros(id) ON UPDATE CASCADE ON DELETE CASCADE"
+        },
+        {
+          "tabla": "asignaciones_piezas",
+          "conname": "asignaciones_piezas_cantidad_check",
+          "definicion": "CHECK ((cantidad > 0))"
+        },
+        {
+          "tabla": "asignaciones_piezas",
+          "conname": "asignaciones_piezas_pieza_id_fkey",
+          "definicion": "FOREIGN KEY (pieza_id) REFERENCES piezas(id) ON UPDATE CASCADE ON DELETE RESTRICT"
+        },
+        {
+          "tabla": "asignaciones_piezas",
+          "conname": "asignaciones_piezas_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "tabla": "asignaciones_piezas",
+          "conname": "asignaciones_piezas_registrado_por_fkey",
+          "definicion": "FOREIGN KEY (registrado_por) REFERENCES perfiles(id) ON UPDATE CASCADE ON DELETE SET NULL"
+        },
+        {
+          "tabla": "asignaciones",
+          "conname": "asignaciones_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "tabla": "asignaciones",
+          "conname": "asignaciones_registrado_por_fkey",
+          "definicion": "FOREIGN KEY (registrado_por) REFERENCES perfiles(id) ON UPDATE CASCADE ON DELETE SET NULL"
+        },
+        {
+          "tabla": "categorias",
+          "conname": "categorias_nombre_unique",
+          "definicion": "UNIQUE (nombre)"
+        },
+        {
+          "tabla": "categorias",
+          "conname": "categorias_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "tabla": "clubes",
+          "conname": "clubes_nombre_unique",
+          "definicion": "UNIQUE (nombre)"
+        },
+        {
+          "tabla": "clubes",
+          "conname": "clubes_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "tabla": "inventario",
+          "conname": "inventario_cantidad_check",
+          "definicion": "CHECK ((cantidad >= 0))"
+        },
+        {
+          "tabla": "inventario",
+          "conname": "inventario_codigo_unique",
+          "definicion": "UNIQUE (codigo)"
+        },
+        {
+          "tabla": "inventario",
+          "conname": "inventario_disponible_check",
+          "definicion": "CHECK (((cantidad_disponible >= 0) AND (cantidad_disponible <= cantidad)))"
+        },
+        {
+          "tabla": "inventario",
+          "conname": "inventario_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "tabla": "pagos",
+          "conname": "pagos_arquero_id_fkey",
+          "definicion": "FOREIGN KEY (arquero_id) REFERENCES arqueros(id) ON UPDATE CASCADE ON DELETE CASCADE"
+        },
+        {
+          "tabla": "pagos",
+          "conname": "pagos_monto_check",
+          "definicion": "CHECK ((monto >= (0)::numeric))"
+        },
+        {
+          "tabla": "pagos",
+          "conname": "pagos_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "tabla": "pagos",
+          "conname": "pagos_registrado_por_fkey",
+          "definicion": "FOREIGN KEY (registrado_por) REFERENCES perfiles(id) ON UPDATE CASCADE ON DELETE SET NULL"
+        },
+        {
+          "tabla": "perfiles",
+          "conname": "perfiles_correo_unique",
+          "definicion": "UNIQUE (correo)"
+        },
+        {
+          "tabla": "perfiles",
+          "conname": "perfiles_id_fkey",
+          "definicion": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+        },
+        {
+          "tabla": "perfiles",
+          "conname": "perfiles_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "tabla": "piezas",
+          "conname": "piezas_cantidad_check",
+          "definicion": "CHECK ((cantidad >= 0))"
+        },
+        {
+          "tabla": "piezas",
+          "conname": "piezas_disponible_check",
+          "definicion": "CHECK (((cantidad_disponible >= 0) AND (cantidad_disponible <= cantidad)))"
+        },
+        {
+          "tabla": "piezas",
+          "conname": "piezas_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "tabla": "tipos_arco",
+          "conname": "tipos_arco_nombre_unique",
+          "definicion": "UNIQUE (nombre)"
+        },
+        {
+          "tabla": "tipos_arco",
+          "conname": "tipos_arco_pkey",
+          "definicion": "PRIMARY KEY (id)"
+        }
+      ],
+      "vistas": null
+    }
+  }
+]
