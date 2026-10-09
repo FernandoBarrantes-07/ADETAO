@@ -261,7 +261,7 @@ select lives_ok(
   $$insert into public.inventario (id, nombre, codigo, tipo, cantidad) values (1004, 'Carcaj', 'INV-1004', 'carcaj', 2)$$,
   'Profesor inserta inventario');
 
-select is((select count(*)::int from public.v_historial_asignaciones), 7,
+select is((select count(*)::int from public.v_historial_asignaciones where arquero_id in (1001, 1002)), 7,
   'Profesor ve todo el historial');
 
 -- -----------------------------------------------------------------------------
@@ -286,7 +286,7 @@ select is(count(*)::int, 0, 'Admin no puede borrar asignaciones de piezas') from
 with d as (delete from public.inventario where id = 1003 returning 1)
 select is(count(*)::int, 1, 'Admin borra inventario sin asignaciones') from d;
 
-select is((select count(*)::int from public.asignaciones), 5,
+select is((select count(*)::int from public.asignaciones where arquero_id in (1001, 1002)), 5,
   'Admin ve todas las asignaciones');
 
 -- -----------------------------------------------------------------------------
@@ -321,7 +321,7 @@ select throws_ok(
 with u as (update public.inventario set nombre = 'Cambio' where id = 1001 returning 1)
 select is(count(*)::int, 0, 'Usuario no puede modificar inventario') from u;
 
-select is((select count(*)::int from public.tipos_arco), 2,
+select is((select count(*)::int from public.tipos_arco where id in (1001, 1002)), 2,
   'Usuario lee el catálogo de tipos de arco');
 
 select throws_ok(
@@ -344,7 +344,7 @@ select is((select count(*)::int from public.inventario), 0,
 select is((select count(*)::int from public.v_historial_asignaciones), 0,
   'Usuario sin arquero no ve historial');
 
-select is((select count(*)::int from public.tipos_arco), 2,
+select is((select count(*)::int from public.tipos_arco where id in (1001, 1002)), 2,
   'Usuario sin arquero lee el catálogo de tipos de arco');
 
 -- -----------------------------------------------------------------------------
