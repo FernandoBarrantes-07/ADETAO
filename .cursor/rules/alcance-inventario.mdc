@@ -1,0 +1,33 @@
+---
+description: Alcance de trabajo de Brandon en el proyecto ADETAO
+alwaysApply: true
+---
+
+# Alcance: solo módulo de inventario
+
+Mi parte del proyecto es únicamente el objetivo 4 del oficio ADETAO-00027-2026,
+"Inventario y trazabilidad": registrar y administrar arcos, tipos de arco y piezas,
+relacionando el inventario con los arqueros para su trazabilidad
+(Plan de Trabajo 3.4, semanas 6-8).
+
+## Dentro del alcance
+- Tablas: inventario, piezas, asignaciones, asignaciones_piezas, tipos_arco.
+- Lógica de stock, estados de artículos y asignaciones, devoluciones, trazabilidad e historiales.
+- Políticas RLS de esas tablas.
+- UI (componentes, páginas, servicios) de inventario, piezas, tipos de arco y asignaciones.
+
+## Fuera del alcance (responsabilidad de Fernando)
+- Arqueros, clubes, categorías, afiliaciones, representantes, grupos de afiliación.
+- Pagos, estado_pago, pasarela de pago, pg_cron.
+- Perfiles y gestión de usuarios (excepto perfiles.arquero_id, compartido).
+- Consultas y dashboard (objetivo 5).
+- Asistencia y desarrollo del atleta.
+
+## Reglas
+- No crear ni modificar migraciones, código o políticas de tablas fuera del alcance.
+- Lo compartido (funciones de rol es_admin, es_staff, mi_arquero_id; FK hacia arqueros;
+  layout, router, Sidebar, Dashboard) se puede usar, pero cualquier cambio debe marcarse
+  como "pendiente de acordar con Fernando" y explicarse antes de hacerlo.
+- Los indicadores de inventario para el dashboard se pueden proponer, pero se acuerdan con Fernando.
+- Si una tarea requiere algo fuera del alcance, detenerse y preguntar.
+- No ejecutar nada contra la base de datos remota sin confirmación explícita.
