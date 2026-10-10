@@ -108,6 +108,13 @@ export function formatearFecha(valor, { conHora = true } = {}) {
   })
 }
 
+// fecha_asignacion trae microsegundos y Date solo milisegundos: se sube al
+// segundo siguiente para no quedar antes del préstamo (asignaciones_fechas_check).
+export function fechaDevolucionFinal(fechaElegida, fechaAsignacion) {
+  const minima = Math.floor(new Date(fechaAsignacion).getTime() / 1000) * 1000 + 1000
+  return new Date(Math.max(new Date(fechaElegida).getTime(), minima))
+}
+
 export const TIPOS_SUGERIDOS = {
   inventario: ['arco', 'diana', 'carcaj', 'protector', 'estabilizador'],
   piezas: ['flecha', 'cuerda', 'visor', 'accesorio', 'pala', 'empuñadura'],

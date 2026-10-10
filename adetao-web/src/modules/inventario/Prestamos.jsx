@@ -201,6 +201,12 @@ function Prestamos() {
     setVersion((v) => v + 1)
   }
 
+  const actualizar = () => {
+    setDevolviendo(null)
+    setMensaje(null)
+    setVersion((v) => v + 1)
+  }
+
   const abrirDevolucion = (prestamo) => {
     setMensaje(null)
     setDevolviendo(prestamo)
@@ -244,6 +250,7 @@ function Prestamos() {
           prestamo={devolviendo}
           onCerrar={() => setDevolviendo(null)}
           onGuardado={alGuardar}
+          onActualizar={actualizar}
         />
       )}
     </>

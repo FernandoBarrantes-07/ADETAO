@@ -448,7 +448,7 @@ src/modules/inventario/
 ├── ArticuloForm.jsx        crear/editar artículo o pieza; valida obligatorios, cantidad y tipo de arco
 ├── Prestamos.jsx           vistas "Préstamos activos" e "Historial por arquero"; filtros y búsqueda
 ├── PrestamoForm.jsx        nuevo préstamo de artículo o pieza; valida cantidad contra lo disponible
-├── DevolucionForm.jsx      devolver o cerrar un préstamo; valida fecha y observaciones
+├── DevolucionForm.jsx      devolver o cerrar un préstamo; valida fecha y observaciones; botón Actualizar si la lista está desactualizada
 ├── HistorialTabla.jsx      tabla reutilizable de movimientos del historial
 ├── HistorialArquero.jsx    "Tiene ahora" y "Préstamos anteriores" de un arquero
 ├── HistorialArticulo.jsx   historial de un artículo o pieza (modal)
@@ -456,7 +456,7 @@ src/modules/inventario/
 ├── Modal.jsx               ventana modal genérica (.inv-modal)
 ├── inventarioService.js    todas las consultas a Supabase
 ├── errores.js              traducción de errores de Postgres/PostgREST a español
-└── constantes.js           estados, etiquetas, opciones de devolución, textos, formatearFecha
+└── constantes.js           estados, etiquetas, opciones de devolución, textos, formatearFecha, fechaDevolucionFinal
 ```
 
 ### `inventarioService.js`
@@ -469,10 +469,14 @@ src/modules/inventario/
 | `listarArqueros({ soloActivos })` | lectura de `arqueros` (`id, nombre, identificacion, estado`) |
 | `listarHistorial(filtros)` | consulta `v_historial_asignaciones` |
 | `crearPrestamo()` | INSERT en `asignaciones` o `asignaciones_piezas`; no envía `estado`, `fecha_asignacion` ni `registrado_por` |
-| `registrarDevolucion()` | UPDATE con `.eq('estado', estadoMostrado)`: si otra persona ya cerró el préstamo, no lo pisa y avisa `Este préstamo ya se registró como "…". Actualice la lista.` |
+| `registrarDevolucion()` | UPDATE con `.eq('estado', estadoMostrado)`: si otra persona ya cerró el préstamo, no lo pisa y lanza `Este préstamo ya se registró como "…". Actualice la lista.` con la marca `listaDesactualizada`, que `DevolucionForm.jsx` usa para mostrar el botón "Actualizar" (cierra el modal y recarga la lista en `Prestamos.jsx`) |
 | `agregarObservacion()` | agrega `[dd/mm/aaaa Registro] texto` a las observaciones previas |
 
 Si un INSERT o UPDATE no devuelve filas (el RLS lo filtró), el servicio muestra `No tiene permisos para realizar esta acción.`
+
+### Fecha de devolución (`fechaDevolucionFinal()` en `constantes.js`)
+
+`fecha_asignacion` llega de la BD con microsegundos (`…27.438466+00`) y `Date` la trunca a milisegundos (`.438`). El formulario de devolución propone el minuto actual sin segundos; si el préstamo es de ese mismo minuto, la fecha elegida queda antes de `fecha_asignacion` y `asignaciones_fechas_check` la rechazaría. `fechaDevolucionFinal(fechaElegida, fechaAsignacion)` devuelve la mayor entre la fecha elegida y el segundo siguiente a `fecha_asignacion`. Se usa el segundo siguiente y no `Math.ceil`, porque con `.000` milisegundos y microsegundos distintos de cero `ceil` no cambiaría el valor. Está en `constantes.js` y no en `DevolucionForm.jsx` para poder probarla sin exportar funciones desde un componente (`react/only-export-components`).
 
 ### `errores.js` (`traducirError`)
 
@@ -522,7 +526,17 @@ Resultado del 10 oct 2026 (rama `inventario`, commit `bad46eb`):
 | `npx supabase test db --local` | `Files=1, Tests=109, Result: PASS` |
 | `npm run lint` | 0 errores; 2 warnings en `src/modules/dashboard/Dashboard.jsx:17` (compartido) |
 | `npm run build` | correcto |
-| Casos funcionales en el navegador | 58 casos: 53 pasan, 2 pasan con observaciones, 1 falla, 1 bloqueado, 1 no aplica ([detalle](casos-de-prueba.md#resumen)) |
+| Casos funcionales en el navegador | 58 casos: 53 pasan, 2 pasan con observaciones, 1 falla, 1 bloqueado, 1 no aplica |
+
+Después de corregir DEV-13, OBS-02 y OBS-04 (10 oct 2026, cambios sin commit sobre `e60c897`, solo en `src/modules/inventario/`):
+
+| Verificación | Resultado |
+|---|---|
+| `npx supabase test db --local` | `Files=1, Tests=109, Result: PASS` |
+| `npm run lint` | 0 errores; los mismos 2 warnings de `Dashboard.jsx:17` |
+| `npm run build` | correcto |
+| Prueba de humo temporal de DEV-13 (Vite SSR, BD local) | 16 ok, 0 fallos |
+| Casos repetidos en el navegador: DEV-13, DEV-10, UI-01 | Pasan. Total: 55 pasan, 1 pasa con observaciones (HIS-07), 0 fallan, 1 bloqueado, 1 no aplica ([detalle](casos-de-prueba.md#resumen)) |
 
 ## 10. Dependencias con Fernando
 
@@ -554,12 +568,18 @@ Nada de esta lista se cambia sin acordarlo (`.cursor/rules/alcance-inventario.md
 
 ## 12. Problemas abiertos de la interfaz
 
-Encontrados en la ejecución de los casos de prueba del 10 oct 2026. No se corrigieron en este paso, que fue solo de documentación.
+Encontrados en la ejecución de los casos de prueba del 10 oct 2026. DEV-13, OBS-02 y OBS-04 se corrigieron el mismo día (tabla de abajo); OBS-01 y OBS-03 dependen de código compartido.
+
+| ID | Problema | Dónde | Corrección |
+|---|---|---|---|
+| DEV-13 | Devolver en el mismo minuto del préstamo daba "La fecha de devolución no puede ser anterior a la fecha del préstamo." (microsegundos de `fecha_asignacion` truncados a milisegundos). | `DevolucionForm.jsx`, `constantes.js` | `fechaDevolucionFinal()` (sección 8). DEV-13 pasa. |
+| OBS-02 | El aviso "Actualice la lista" no tenía un botón para hacerlo. | `inventarioService.js`, `DevolucionForm.jsx`, `Prestamos.jsx` | Botón "Actualizar" en el aviso; cierra el modal y recarga la lista. DEV-10 pasa. |
+| OBS-04 | En 390 px, la pestaña "Tipos de arco" quedaba fuera de la pantalla sin indicación y el filtro de tipo de arco sobresalía unos 40 px. | `Inventario.css` | Sombras de desplazamiento en `.inv-pestanas` (`background-attachment: local`/`scroll`; las tapas usan `#f5f5f5`, el fondo de `.dashboard`) y `min-width: 0` en los filtros a 750 px o menos. UI-01 pasa. |
+
+Siguen abiertos:
 
 | ID | Problema | Dónde | Propuesta |
 |---|---|---|---|
-| DEV-13 (falla) | Devolver un préstamo en el mismo minuto en que se registró da "La fecha de devolución no puede ser anterior a la fecha del préstamo.". `fecha_asignacion` tiene microsegundos en la BD y JavaScript la trunca a milisegundos, así que `Math.max(fecha, fecha_asignacion)` queda una fracción de milisegundo antes del préstamo y lo rechaza `asignaciones_fechas_check`. | `DevolucionForm.jsx`, línea 57 | Sumar 1 ms al `fecha_asignacion` truncado, o redondearlo hacia arriba al segundo. |
 | OBS-01 | El panel completo se recarga cada vez que la pestaña del navegador vuelve a quedar visible: se pierde la pestaña activa y cualquier formulario abierto. Cada `visibilitychange` hace que supabase-js emita un evento de sesión con un objeto nuevo; `App.jsx` llama a `setSession` y `Dashboard.jsx` vuelve a cargar el perfil (`useEffect(…, [session])`). | `App.jsx`, `Dashboard.jsx` (compartidos) | **Pendiente de acordar con Fernando:** depender de `session.user.id` en lugar del objeto `session`, o no mostrar "Cargando sistema…" al refrescar. |
-| OBS-02 | El aviso "Actualice la lista" no tiene un botón para hacerlo. | `Prestamos.jsx` | Botón "Actualizar" en la lista de préstamos. |
 | OBS-03 | El inicio del rol usuario muestra la tarjeta "Inventario" con `0` fijo y "+ Agregar inventario" sin acción. | `Dashboard.jsx` (compartido) | **Pendiente de acordar con Fernando** (sección 10). |
-| OBS-04 | En 390 px, la pestaña "Tipos de arco" queda fuera de la pantalla sin indicación de desplazamiento y el filtro de tipo de arco sobresale unos 40 px. | `Inventario.css` | Ajustar el ancho de los filtros y mostrar que las pestañas se desplazan. |
+| UI-01 (detalle) | En 390 px, el selector "Préstamos activos / Historial por arquero" (`.inv-vistas`) mide 305 px en 284 px y corta unos 21 px; se desliza, pero sin sombra. | `Inventario.css` | Aplicar a `.inv-vistas` las mismas sombras de `.inv-pestanas` (tapas con `#f7f7f7`) o reducir el relleno de sus botones en pantallas angostas. |

@@ -244,7 +244,10 @@ export async function registrarDevolucion({ prestamo, opcion, fecha, observacion
     .eq('id', prestamo.asignacion_id)
     .maybeSingle()
 
-  throw new Error(actual && actual.estado !== prestamo.estado
-    ? `Este préstamo ya se registró como "${actual.estado}". Actualice la lista.`
-    : MENSAJE_SIN_PERMISO)
+  if (actual && actual.estado !== prestamo.estado) {
+    const error = new Error(`Este préstamo ya se registró como "${actual.estado}". Actualice la lista.`)
+    error.listaDesactualizada = true
+    throw error
+  }
+  throw new Error(MENSAJE_SIN_PERMISO)
 }

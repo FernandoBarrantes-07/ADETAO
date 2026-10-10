@@ -8,12 +8,19 @@
   text-align: left;
 }
 
+/* Sombras en los bordes cuando hay más pestañas a los lados. Las tapas (local)
+   deben tener el fondo de .dashboard (#f5f5f5) para no verse sin desbordamiento. */
 .inv-pestanas {
   display: flex;
   gap: 6px;
   margin-bottom: 18px;
   border-bottom: 1px solid #e5e5e5;
   overflow-x: auto;
+  background:
+    linear-gradient(to right, #f5f5f5 30%, rgba(245, 245, 245, 0)) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, #f5f5f5 30%, rgba(245, 245, 245, 0)) right center / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.3), transparent) left center / 18px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.3), transparent) right center / 18px 100% no-repeat scroll;
 }
 
 .inv-pestana {
@@ -652,9 +659,11 @@
     grid-template-columns: 1fr;
   }
 
+  /* Sin min-width: 0, un select no baja del ancho de su opción más larga. */
   .inv-filtros input,
   .inv-filtros select {
     flex: 1 1 100%;
+    min-width: 0;
   }
 
   .inv-tabla thead {

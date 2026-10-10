@@ -340,9 +340,9 @@ Los textos entre comillas cambian según el artículo o el arquero.
 | La fecha no puede ser anterior al préstamo (…). | Revise la fecha: debe ser igual o posterior a la del préstamo. |
 | La fecha no puede estar en el futuro. | Use la fecha de hoy o una anterior. |
 | Describa el daño en las observaciones. / Describa la pérdida en las observaciones. | Escriba qué pasó; es obligatorio para dañados y perdidos. |
-| La fecha de devolución no puede ser anterior a la fecha del préstamo. | Si el préstamo se registró hace menos de un minuto, espere un minuto, cierre la ventana y vuelva a intentarlo (es un fallo conocido que se está corrigiendo). En otro caso, revise la fecha. |
-| Este préstamo ya se registró como "…". Actualice la lista. | Otra persona ya registró esa devolución. Cambie a otra vista o pestaña y vuelva para ver la lista actualizada. |
-| Transición de estado no permitida: de "…" a "…". | Ese préstamo ya está cerrado y no admite cambios. Actualice la lista. |
+| La fecha de devolución no puede ser anterior a la fecha del préstamo. | Revise la fecha: debe ser igual o posterior a la del préstamo. |
+| Este préstamo ya se registró como "…". Actualice la lista. | Otra persona ya registró esa devolución. Pulse **Actualizar**, al lado del mensaje: la ventana se cierra y la lista se recarga. |
+| Transición de estado no permitida: de "…" a "…". | Ese préstamo ya está cerrado y no admite cambios. Cierre la ventana y cambie de vista o de pestaña para ver la lista actualizada. |
 
 ### Otros
 
@@ -355,6 +355,6 @@ Los textos entre comillas cambian según el artículo o el arquero.
 ## 12. Consejos
 
 - **Termine un formulario antes de cambiar de pestaña del navegador.** Si cambia a otra pestaña o ventana y vuelve, la pantalla puede recargarse y tendría que llenarlo de nuevo.
-- **Para ver la lista de préstamos actualizada**, cambie a "Historial por arquero" y vuelva a "Préstamos activos", o cambie de pestaña dentro de Inventario.
+- **Para ver la lista de préstamos actualizada**, cambie a "Historial por arquero" y vuelva a "Préstamos activos", o cambie de pestaña dentro de Inventario. Si el aviso "Actualice la lista" aparece al devolver, basta con pulsar **Actualizar**.
 - **Use las observaciones.** Anote el estado del equipo al prestarlo y al recibirlo; quedan guardadas en el historial con la fecha.
-- **En el celular**, si no ve la pestaña **Tipos de arco**, deslice las pestañas hacia la izquierda.
+- **En el celular**, las pestañas que no caben se ven deslizando de lado. Una sombra en el borde izquierdo o derecho indica que hay más pestañas hacia ese lado (por ejemplo, **Tipos de arco**).

@@ -38,6 +38,22 @@ Verificaciones automáticas del mismo día:
 - `npm run lint`: 0 errores; 2 warnings, ambos en `src/modules/dashboard/Dashboard.jsx:17` (código compartido).
 - `npm run build`: correcto.
 
+### Re-ejecución del 10 oct 2026
+
+Después de corregir DEV-13, OBS-02 y OBS-04 se repitieron los casos afectados.
+
+| Dato | Valor |
+|---|---|
+| Fecha | 10 oct 2026, 13:36 a 13:42 (UTC-6) |
+| Código | rama `inventario`, commit `e60c897` más los cambios sin commit en `src/modules/inventario/` (`constantes.js`, `DevolucionForm.jsx`, `inventarioService.js`, `Prestamos.jsx`, `Inventario.css`) |
+| Base de datos | Supabase local, reiniciada con `npx supabase db reset --local` antes de la prueba de humo, antes del navegador y al terminar |
+| Casos repetidos | DEV-13, DEV-10 (con el botón de OBS-02) y UI-01 |
+| Ejecutó | agente de Cursor, a pedido del responsable del módulo |
+
+- Prueba de humo temporal de DEV-13: script Node que cargó con Vite SSR los `inventarioService.js` y `constantes.js` reales contra la BD local. Cada préstamo se devolvió en el mismo minuto, con la fecha calculada como en el formulario (minuto actual sin segundos, pasado por `fechaDevolucionFinal()`). Resultado: **16 ok, 0 fallos**. Cubre: devolución en buen estado de ARC-004 (`fecha_asignacion` `19:36:15.792629+00`, `fecha_devolucion` `19:36:16+00`; ARC-004 vuelve a `1 / 1`); control con el cálculo anterior (`Math.max` sin redondeo), que se sigue rechazando con "La fecha de devolución no puede ser anterior a la fecha del préstamo."; PZ-REP-01 devuelta dañada y luego reparada por el profesor; PZ-FLE-30 reportada como perdida (`23 / 23`). El script se borró.
+- Para UI-01 se creó por psql, solo en local, el tipo de arco inactivo "PRUEBA Olímpico juvenil editado", el nombre largo que hacía sobresalir el filtro en la ejecución anterior. Para DEV-10 se simuló otra vez a otra persona con un `update` por psql.
+- Verificaciones automáticas después de los cambios: `npm run lint` 0 errores (solo los 2 warnings de `src/modules/dashboard/Dashboard.jsx:17`, compartido); `npm run build` correcto; `npx supabase test db --local` → `Files=1, Tests=109, Result: PASS`.
+
 ## Estados
 
 | Estado | Significado |
@@ -56,13 +72,13 @@ Verificaciones automáticas del mismo día:
 | ART — Artículos | 10 | 10 | 0 | 0 | 0 | 0 |
 | PZ — Piezas | 4 | 4 | 0 | 0 | 0 | 0 |
 | PRE — Préstamos | 8 | 8 | 0 | 0 | 0 | 0 |
-| DEV — Devoluciones | 13 | 12 | 0 | 1 | 0 | 0 |
+| DEV — Devoluciones | 13 | 13 | 0 | 0 | 0 | 0 |
 | HIS — Historiales | 7 | 6 | 1 | 0 | 0 | 0 |
 | PER — Permisos por rol | 6 | 4 | 0 | 0 | 1 | 1 |
-| UI — Interfaz | 2 | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **58** | **53** | **2** | **1** | **1** | **1** |
+| UI — Interfaz | 2 | 2 | 0 | 0 | 0 | 0 |
+| **Total** | **58** | **55** | **1** | **0** | **1** | **1** |
 
-Fallo encontrado: DEV-13 (devolver en el mismo minuto del préstamo). Observaciones fuera de los casos: OBS-01 a OBS-04, al final.
+Estado después de la [re-ejecución](#re-ejecución-del-10-oct-2026). En la primera ejecución DEV-13 fallaba y UI-01 pasaba con observaciones (53 pasan, 2 con observaciones, 1 falla); los dos se corrigieron y pasan. Observaciones fuera de los casos: OBS-01 a OBS-04, al final (OBS-02 y OBS-04 corregidas).
 
 ---
 
@@ -468,7 +484,7 @@ Fallo encontrado: DEV-13 (devolver en el mismo minuto del préstamo). Observacio
 - **Pasos:** prestar ARC-004 a Luis; un minuto después, "Devolver" → "Reportar como perdido" con observación.
 - **Datos:** "Extraviado en competencia".
 - **Resultado esperado:** ARC-004 `0 / 0 | Perdido`.
-- **Resultado obtenido:** préstamo registrado (`0 / 1 Prestado`); `"Arco barebow 25 lb" de Luis Chaves Ureña: perdido.`; `ARC-004 … 0 / 0 | Perdido`. El primer intento, en el mismo minuto del préstamo, falló (ver DEV-13).
+- **Resultado obtenido:** préstamo registrado (`0 / 1 Prestado`); `"Arco barebow 25 lb" de Luis Chaves Ureña: perdido.`; `ARC-004 … 0 / 0 | Perdido`. El primer intento, en el mismo minuto del préstamo, falló (ver DEV-13, ya corregido).
 - **Estado:** Pasa.
 - **Cobertura en BD:** "Si se pierden todas las unidades, el artículo queda perdido (0/0)", "Bajar la cantidad a 0 a mano no marca el artículo como perdido".
 
@@ -512,7 +528,8 @@ Fallo encontrado: DEV-13 (devolver en el mismo minuto del préstamo). Observacio
 - **Pasos:** abrir "Devolver"; mientras tanto, por psql, se marca ese préstamo como devuelto; pulsar "Guardar".
 - **Datos:** observación "Recibidas completas".
 - **Resultado esperado:** aviso de que ya se registró; no se agrega otra nota.
-- **Resultado obtenido:** `Este préstamo ya se registró como "devuelto". Actualice la lista.` Al volver a la lista, el préstamo ya no aparece en pendientes. No hay botón para actualizar la lista (ver OBS-02).
+- **Resultado obtenido (re-ejecución, con el botón de OBS-02):** préstamo de ARC-001 a Ana Jiménez Castro (seed); con el modal abierto se marcó como devuelto por psql. Al pulsar "Guardar": `Este préstamo ya se registró como "devuelto". Actualice la lista.` con un botón **Actualizar** al lado. Al pulsarlo, el modal se cierra y la lista se recarga sin cambiar de vista: el contador pasa de "7 pendientes de devolución" a "6 pendientes de devolución" y el préstamo de Ana ya no aparece. No se agregó ninguna nota al préstamo.
+- **Resultado obtenido (primera ejecución):** el mismo aviso, sin botón; había que cambiar de vista o de pestaña para ver la lista actualizada (OBS-02).
 - **Estado:** Pasa.
 - **Cobertura en BD:** solo UI (`registrarDevolucion()` actualiza solo si el estado no cambió).
 
@@ -543,11 +560,13 @@ Fallo encontrado: DEV-13 (devolver en el mismo minuto del préstamo). Observacio
 - **Objetivo:** devolver un préstamo recién creado (por ejemplo, si se registró por error).
 - **Precondiciones:** un préstamo creado en el minuto actual.
 - **Pasos:** prestar; sin esperar al minuto siguiente, "Devolver" con cualquier opción; "Guardar".
-- **Datos:** ARC-004 a Luis (13:08:27); PZ-REP-01 a HUMO (13:10).
+- **Datos:** re-ejecución: ARC-004 a Luis (13:38:00), "Devolver en buen estado"; PZ-REP-01 a Luis (13:39:00), "Devolver dañado" con la observación "Prueba DEV-13: pala rajada". Primera ejecución: ARC-004 a Luis (13:08:27) y PZ-REP-01 a HUMO (13:10).
 - **Resultado esperado:** la devolución se registra.
-- **Resultado obtenido:** en los 2 intentos: "La fecha de devolución no puede ser anterior a la fecha del préstamo." Repetido después del cambio de minuto, funciona (DEV-06 y DEV-11). Causa: la BD guarda `fecha_asignacion` con microsegundos (`19:08:27.438466+00`) y JavaScript la lee con milisegundos (`.438`). `DevolucionForm.jsx` usa `max(fecha elegida, fecha_asignacion)` para no quedar antes del préstamo, pero ese valor queda 0,466 ms antes del real y `asignaciones_fechas_check` lo rechaza.
-- **Estado:** Falla. Propuesta (no aplicada; este paso no modifica código): sumar 1 ms al valor de `fecha_asignacion` en ese ajuste, o redondearlo hacia arriba al segundo.
-- **Cobertura en BD:** `asignaciones_fechas_check` (la regla de BD es correcta; el fallo está en la UI).
+- **Resultado obtenido (re-ejecución):** ARC-004: modal con "Prestado el 10/10/2026, 01:38 p. m." y fecha por defecto `2026-10-10T13:38`; al guardar en el mismo segundo, `"Arco barebow 25 lb" de Luis Chaves Ureña: devuelto.` PZ-REP-01: `"Reposaflechas" de Luis Chaves Ureña: devuelto dañado.` (13:39:04); la fila queda Dañado con fecha de préstamo y de devolución 01:39 p. m. y el botón "Cerrar". La prueba de humo de la [re-ejecución](#re-ejecución-del-10-oct-2026) cubre además perdido y dañado → reparado en el mismo minuto.
+- **Resultado obtenido (primera ejecución):** en los 2 intentos: "La fecha de devolución no puede ser anterior a la fecha del préstamo." Repetido después del cambio de minuto, funcionaba (DEV-06 y DEV-11). Causa: la BD guarda `fecha_asignacion` con microsegundos (`19:08:27.438466+00`) y JavaScript la lee con milisegundos (`.438`). `DevolucionForm.jsx` usaba `max(fecha elegida, fecha_asignacion)` para no quedar antes del préstamo, pero ese valor quedaba 0,466 ms antes del real y `asignaciones_fechas_check` lo rechazaba.
+- **Corrección:** `fechaDevolucionFinal()` en `constantes.js`, usada por `DevolucionForm.jsx`, sube `fecha_asignacion` al segundo siguiente antes de compararla con la fecha elegida. Se usa el segundo siguiente y no `Math.ceil` porque, si los milisegundos son `.000` pero hay microsegundos, `ceil` no cambiaría el valor.
+- **Estado:** Pasa (en la primera ejecución: Falla).
+- **Cobertura en BD:** `asignaciones_fechas_check` (la regla de BD es correcta; el fallo estaba en la UI).
 
 ## HIS — Historiales
 
@@ -702,11 +721,12 @@ Fallo encontrado: DEV-13 (devolver en el mismo minuto del préstamo). Observacio
 - **Rol:** administrador.
 - **Objetivo:** que el módulo se pueda usar en una pantalla de celular.
 - **Precondiciones:** emulación de 390 × 844 px.
-- **Pasos:** ver Artículos; abrir "+ Nuevo artículo".
-- **Datos:** —
-- **Resultado esperado:** sin desbordes; la tabla y los formularios se leen bien.
-- **Resultado obtenido:** la tabla pasa a tarjetas (cada campo con su etiqueta) y ninguna celda se sale de la tarjeta. El modal ocupa el ancho en una columna. Detalles: la pestaña "Tipos de arco" queda fuera de la vista (las pestañas se deslizan de lado, pero no hay indicación visual) y el filtro "Todos los tipos de arco" sobresale unos 40 px de la tarjeta. El menú lateral (compartido) ocupa 70 px.
-- **Estado:** Pasa con observaciones.
+- **Pasos:** ver Artículos; deslizar las pestañas hasta "Tipos de arco"; ver los filtros de Artículos y de Préstamos; abrir "+ Nuevo artículo" con tipo "arco".
+- **Datos:** tipo de arco inactivo "PRUEBA Olímpico juvenil editado" (re-ejecución, creado por psql en local).
+- **Resultado esperado:** sin desbordes; la tabla y los formularios se leen bien; se nota que hay más pestañas a los lados.
+- **Resultado obtenido (re-ejecución):** las pestañas miden 413 px en 278 px visibles. Al inicio se ve una sombra en el borde derecho; a mitad del desplazamiento, en los dos bordes; al final, "Tipos de arco" queda completa y solo con la sombra izquierda. Todos los filtros de Artículos, incluido "Tipo de arco" con la opción `PRUEBA Olímpico juvenil editado (inactivo)`, y los de Préstamos quedan dentro de la tarjeta (114 a 346 px; contenido de la tarjeta de 113 a 347 px), sin desplazamiento horizontal de la página. La tabla pasa a tarjetas y el modal "Nuevo artículo" ocupa una columna (20 a 370 px) sin campos fuera. El menú lateral (compartido) ocupa 70 px. Detalle menor fuera de esta corrección: el selector "Préstamos activos / Historial por arquero" mide 305 px en 284 px y corta unos 21 px de "Historial por arquero" (se desliza, pero sin sombra).
+- **Resultado obtenido (primera ejecución):** la pestaña "Tipos de arco" quedaba fuera de la vista sin indicación visual y el filtro "Todos los tipos de arco" sobresalía unos 40 px de la tarjeta (OBS-04).
+- **Estado:** Pasa (en la primera ejecución: Pasa con observaciones).
 - **Cobertura en BD:** no aplica.
 
 ### UI-02 — Estados de carga, lista vacía y sin resultados
@@ -727,20 +747,20 @@ Fallo encontrado: DEV-13 (devolver en el mismo minuto del préstamo). Observacio
 ### OBS-01 — El panel se recarga al volver a la pestaña del navegador (código compartido)
 Cada vez que la pestaña vuelve a quedar visible, Supabase emite un evento de sesión con un objeto nuevo. `App.jsx` lo guarda con `setSession` y `Dashboard.jsx` vuelve a cargar el perfil (`useEffect(…, [session])`), mostrando "Cargando sistema…". Inventario se desmonta: la pestaña vuelve a "Artículos" y se pierde cualquier formulario abierto (por ejemplo, un préstamo a medio llenar). En la ejecución ocurrió cada vez que el navegador integrado se volvía a mostrar; en un navegador normal pasa al cambiar de pestaña y volver. **Pendiente de acordar con Fernando:** que `Dashboard.jsx` dependa de `session.user.id` en lugar del objeto `session`, o que no muestre la pantalla de carga al refrescar.
 
-### OBS-02 — No hay botón para actualizar la lista de préstamos
-El aviso de DEV-10 dice "Actualice la lista", pero no hay botón para hacerlo; hay que cambiar de vista o de pestaña y volver. Propuesta (solo inventario): un botón "Actualizar" en la lista de préstamos.
+### OBS-02 — No hay botón para actualizar la lista de préstamos (corregida)
+El aviso de DEV-10 decía "Actualice la lista", pero no había botón para hacerlo; había que cambiar de vista o de pestaña y volver. **Corregida el 10 oct 2026:** `registrarDevolucion()` marca ese error con `listaDesactualizada`, `DevolucionForm.jsx` muestra un botón "Actualizar" junto al aviso y `Prestamos.jsx` cierra el modal y recarga "Préstamos activos" e "Historial por arquero". Verificado en DEV-10.
 
 ### OBS-03 — Inicio del rol usuario (código compartido)
 El rol usuario ve la tarjeta "Inventario" con `0` fijo y la acción "+ Agregar inventario", que no hace nada (`Dashboard.jsx`, sin `onClick`). **Pendiente de acordar con Fernando** (checklist, sección 10).
 
-### OBS-04 — Detalles en celular
-Ver UI-01: la pestaña "Tipos de arco" sin indicación de desplazamiento y el filtro de tipo de arco que sobresale. Se corrigen en `Inventario.css` (solo inventario).
+### OBS-04 — Detalles en celular (corregida)
+Ver UI-01: la pestaña "Tipos de arco" sin indicación de desplazamiento y el filtro de tipo de arco que sobresalía. **Corregida el 10 oct 2026 en `Inventario.css`:** `.inv-pestanas` tiene sombras en los bordes por donde hay más pestañas (fondos con `background-attachment: local` y `scroll`, sin JavaScript; las tapas usan `#f5f5f5`, el fondo del panel) y, en pantallas de 750 px o menos, los filtros llevan `min-width: 0` para que un `<select>` no se ensanche hasta su opción más larga. Verificado en UI-01.
 
 ---
 
 ## Anexo: reglas de BD y sus pruebas pgTAP
 
-Resultado del 10 oct 2026: `npx supabase test db --local` → `Files=1, Tests=109, Result: PASS`.
+Resultado del 10 oct 2026 (antes y después de las correcciones de DEV-13, OBS-02 y OBS-04): `npx supabase test db --local` → `Files=1, Tests=109, Result: PASS`.
 
 | Regla | Pruebas pgTAP | Casos de UI |
 |---|---|---|

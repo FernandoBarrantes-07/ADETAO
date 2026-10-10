@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import Modal from './Modal'
-import { OPCIONES_DEVOLUCION, formatearFecha } from './constantes'
+import { OPCIONES_DEVOLUCION, fechaDevolucionFinal, formatearFecha } from './constantes'
 import { registrarDevolucion } from './inventarioService'
 
 function aValorLocal(fecha) {
@@ -28,13 +28,14 @@ function validar({ prestamo, opcion, fecha, observaciones }) {
   return null
 }
 
-function DevolucionForm({ prestamo, onCerrar, onGuardado }) {
+function DevolucionForm({ prestamo, onCerrar, onGuardado, onActualizar }) {
   const opciones = OPCIONES_DEVOLUCION[prestamo.estado] || []
   const [ahora] = useState(() => aValorLocal(new Date()))
   const [estado, setEstado] = useState(opciones[0]?.estado || '')
   const [fecha, setFecha] = useState(ahora)
   const [observaciones, setObservaciones] = useState('')
   const [error, setError] = useState('')
+  const [desactualizado, setDesactualizado] = useState(false)
   const [guardando, setGuardando] = useState(false)
 
   const opcion = opciones.find((o) => o.estado === estado)
@@ -42,6 +43,7 @@ function DevolucionForm({ prestamo, onCerrar, onGuardado }) {
 
   const guardar = async (e) => {
     e.preventDefault()
+    setDesactualizado(false)
 
     const mensaje = validar({ prestamo, opcion, fecha, observaciones })
     if (mensaje) {
@@ -54,13 +56,14 @@ function DevolucionForm({ prestamo, onCerrar, onGuardado }) {
 
     // Dentro del mismo minuto del préstamo, la fecha elegida (sin segundos)
     // quedaría antes que fecha_asignacion y la rechazaría el CHECK.
-    const fechaFinal = new Date(Math.max(new Date(fecha), new Date(prestamo.fecha_asignacion)))
+    const fechaFinal = fechaDevolucionFinal(fecha, prestamo.fecha_asignacion)
 
     try {
       await registrarDevolucion({ prestamo, opcion, fecha: fechaFinal, observaciones })
       onGuardado(`"${prestamo.articulo_nombre}" de ${prestamo.arquero_nombre}: ${opcion.registro.toLowerCase()}.`)
     } catch (err) {
       setError(err.message)
+      setDesactualizado(Boolean(err.listaDesactualizada))
       setGuardando(false)
     }
   }
@@ -148,7 +151,17 @@ function DevolucionForm({ prestamo, onCerrar, onGuardado }) {
           </>
         )}
 
-        {error && <div className="inv-alerta error">{error}</div>}
+        {error && (
+          <div className="inv-alerta error">
+            {error}
+            {desactualizado && (
+              <>
+                {' '}
+                <button type="button" className="inv-btn" onClick={onActualizar}>Actualizar</button>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="inv-form-acciones">
           <button type="button" className="inv-btn" onClick={onCerrar}>
