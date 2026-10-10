@@ -163,10 +163,13 @@ function ArticuloForm({ tabla, articulo, tiposArco, tiposExistentes, onCerrar, o
           <label>
             Estado
             <select value={form.estado} onChange={cambiar('estado')}>
-              {opcionesEstado(form.estado).map((e) => (
-                <option key={e.valor} value={e.valor}>{e.etiqueta}</option>
+              {opcionesEstado(articulo?.estado ?? form.estado, asignado).map((e) => (
+                <option key={e.valor} value={e.valor} disabled={e.deshabilitado}>{e.etiqueta}</option>
               ))}
             </select>
+            {form.estado === 'prestado' && (
+              <small>Se calcula automáticamente: no quedan unidades disponibles.</small>
+            )}
           </label>
 
           <label className="inv-form-ancho">

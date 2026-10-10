@@ -6,21 +6,36 @@ export const ESTADOS_ARTICULO = [
   { valor: 'perdido', etiqueta: 'Perdido' },
 ]
 
-// 'prestado' existe en el enum pero no participa en las reglas de stock.
-const ETIQUETAS_ESTADO = {
-  ...Object.fromEntries(ESTADOS_ARTICULO.map((e) => [e.valor, e.etiqueta])),
-  prestado: 'Prestado',
-}
+// 'prestado' lo calcula la BD cuando no quedan unidades disponibles; no se elige a mano.
+export const ESTADOS_FILTRO = [...ESTADOS_ARTICULO, { valor: 'prestado', etiqueta: 'Prestado' }]
+
+// Con unidades prestadas la BD rechaza estos estados hasta registrar la devolución.
+const ESTADOS_BLOQUEADOS_CON_PRESTAMOS = ['mantenimiento', 'dañado', 'perdido']
+
+export const AVISO_DEVOLUCION = 'Primero registre la devolución'
+
+const ETIQUETAS_ESTADO = Object.fromEntries(ESTADOS_FILTRO.map((e) => [e.valor, e.etiqueta]))
 
 export function etiquetaEstado(estado) {
   return ETIQUETAS_ESTADO[estado] || estado
 }
 
-export function opcionesEstado(estadoActual) {
+export function opcionesEstado(estadoActual, unidadesPrestadas = 0) {
+  const opciones = ESTADOS_ARTICULO.map((e) => {
+    const bloqueado = unidadesPrestadas > 0
+      && e.valor !== estadoActual
+      && ESTADOS_BLOQUEADOS_CON_PRESTAMOS.includes(e.valor)
+
+    return bloqueado
+      ? { ...e, etiqueta: `${e.etiqueta} — ${AVISO_DEVOLUCION}`, deshabilitado: true }
+      : e
+  })
+
   if (estadoActual && !ESTADOS_ARTICULO.some((e) => e.valor === estadoActual)) {
-    return [...ESTADOS_ARTICULO, { valor: estadoActual, etiqueta: etiquetaEstado(estadoActual) }]
+    opciones.push({ valor: estadoActual, etiqueta: etiquetaEstado(estadoActual), deshabilitado: true })
   }
-  return ESTADOS_ARTICULO
+
+  return opciones
 }
 
 export const TIPOS_SUGERIDOS = {

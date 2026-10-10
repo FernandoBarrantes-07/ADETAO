@@ -16,7 +16,7 @@ Alcance: objetivo 4 del oficio ADETAO-00027-2026 y Plan de Trabajo 3.4. Registra
 | `[ ]` | Pendiente |
 | `[?]` | Por verificar: se indica qué probar a mano |
 
-Última auditoría: 10 oct 2026 (solo lectura; no se modificó código ni BD).
+Última auditoría: 10 oct 2026 (solo lectura; no se modificó código ni BD). Actualizado el 10 oct 2026 con las reglas de préstamo (migración `20261010120000_inventario_reglas_prestamo.sql`, solo en local).
 
 ---
 
@@ -24,8 +24,8 @@ Alcance: objetivo 4 del oficio ADETAO-00027-2026 y Plan de Trabajo 3.4. Registra
 
 | Sección | Hecho | Parcial | Pendiente | Por verificar |
 |---|---|---|---|---|
-| 1. Base de datos | 26 | 1 | 5 | 2 |
-| 2. Tipos de arco | 4 | 1 | 0 | 0 |
+| 1. Base de datos | 32 | 0 | 2 | 1 |
+| 2. Tipos de arco | 5 | 0 | 0 | 0 |
 | 3. Inventario | 8 | 0 | 0 | 0 |
 | 4. Piezas | 4 | 0 | 0 | 0 |
 | 5. Asignaciones | 1 | 6 | 1 | 0 |
@@ -45,8 +45,10 @@ Migraciones en `supabase/migrations/` (rutas abreviadas abajo sin la carpeta):
 - `20261009141945_remote_schema.sql`: baseline traído con `db pull` desde producción, sin escribir en el historial remoto. Ya incluye `crear_perfil_usuario()`, el trigger `on_auth_user_created` sobre `auth.users`, `rls_auto_enable()` y el event trigger `ensure_rls`, así que no hizo falta una migración `auth_triggers`.
 - `20261009150000_base_roles.sql`: compartida, **pendiente de acordar con Fernando** (ver sección 10).
 - `20261009150100_inventario_enums.sql`, `20261009150200_inventario_estructura.sql`, `20261009150300_inventario_stock.sql`, `20261009150400_inventario_historial.sql`, `20261009150500_inventario_rls.sql`.
+- `20261010120000_inventario_reglas_prestamo.sql`: arquero activo al prestar, tipo de arco activo, bloqueo de estados con unidades prestadas, `prestado` automático, sin DELETE en `tipos_arco` y `REVOKE ALL` a `anon`.
+- `20261010123000_inventario_perdido_total.sql`: reemplaza `articulo_control_stock()` para que un artículo quede `perdido` cuando se pierden todas sus unidades.
 
-Pruebas en `supabase/tests/database/inventario.test.sql` (75 pruebas pgTAP).
+Pruebas en `supabase/tests/database/inventario.test.sql` (109 pruebas pgTAP).
 
 ### Estructura
 - [x] CHECK `cantidad_disponible` entre 0 y `cantidad` en `inventario` y `piezas` — evidencia: `inventario_disponible_check` y `piezas_disponible_check` en el baseline.
@@ -64,7 +66,7 @@ Pruebas en `supabase/tests/database/inventario.test.sql` (75 pruebas pgTAP).
 - [x] `tipos_arco.estado` (`record_status`, default `activo`) disponible para desactivar tipos de arco — evidencia: `ALTER TABLE tipos_arco ADD COLUMN estado` en el baseline. (Ítem nuevo.)
 
 ### Lógica de stock
-- [x] Trigger al asignar: valida `cantidad_disponible >= cantidad` y descuenta. Error en español si no alcanza — evidencia: `asignacion_validar_alta()` con `trg_asignaciones_validar_alta` y `trg_asignaciones_piezas_validar_alta`. También rechaza altas con estado distinto de `activo` y artículos en `mantenimiento`, `dañado`, `no_disponible` o `perdido`. `prestado` no participa en ninguna regla. Pruebas "Asignar sin stock suficiente se rechaza", "Asignar un artículo en mantenimiento se rechaza", "Una asignación nueva con estado distinto de activo se rechaza".
+- [x] Trigger al asignar: valida `cantidad_disponible >= cantidad` y descuenta. Error en español si no alcanza — evidencia: `asignacion_validar_alta()` con `trg_asignaciones_validar_alta` y `trg_asignaciones_piezas_validar_alta`. También rechaza altas con estado distinto de `activo` y artículos en `mantenimiento`, `dañado`, `no_disponible` o `perdido`. Un artículo `prestado` no tiene unidades disponibles, así que la regla de stock lo rechaza. Pruebas "Asignar sin stock suficiente se rechaza", "Asignar un artículo en mantenimiento se rechaza", "Una asignación nueva con estado distinto de activo se rechaza".
 - [?] Bloqueo de concurrencia (`SELECT ... FOR UPDATE`) sobre el artículo al asignar — implementado en `asignacion_validar_alta()`, pero sin prueba. Probar a mano: abrir dos sesiones `psql` en local, `begin;` en ambas, insertar en cada una una asignación del mismo artículo que consuma todo el disponible; la segunda debe quedar esperando y fallar con "Stock insuficiente" al hacer `commit` la primera.
 - [x] Transiciones de estado permitidas — evidencia: `asignacion_validar_cambio()` con `trg_asignaciones_validar_cambio` y `trg_asignaciones_piezas_validar_cambio`; cada caso tiene prueba sobre `asignaciones`. En `asignaciones_piezas` solo se prueba alta, stock insuficiente y devolución (la función es la misma).
   - [x] activo → devuelto: restaura disponibles.
@@ -79,30 +81,32 @@ Pruebas en `supabase/tests/database/inventario.test.sql` (75 pruebas pgTAP).
   - Un UPDATE directo de `cantidad_disponible` se rechaza, aunque lo haga `postgres`.
   - Al cambiar `cantidad`, `cantidad_disponible` se ajusta con la misma diferencia, y se rechaza si la nueva cantidad queda por debajo de lo asignado.
   - Los cambios que vienen del trigger de una asignación (`pg_trigger_depth() > 1`) pasan sin estas reglas; la prueba de `activo → perdido` (resultado `3/3`) lo demuestra.
+  - El cálculo de `prestado` (ver abajo) sí se aplica en cualquier profundidad. Esta función se reemplazó en `inventario_reglas_prestamo`.
 - [x] Sin política de DELETE en asignaciones (el historial se conserva) — evidencia: `inventario_rls` no crea políticas DELETE para estas tablas (confirmado en `pg_policies` local); pruebas "Admin/Profesor no puede borrar asignaciones" (0 filas afectadas).
-- [ ] La asignación exige un arquero `activo` — `asignacion_validar_alta()` no revisa `arqueros.estado`; hoy se puede prestar equipo a un arquero inactivo. Falta la validación en el trigger y su prueba. (Ítem nuevo.)
-- [ ] Regla para cambiar el estado de un artículo con asignaciones activas — hoy staff puede poner `inventario.estado`/`piezas.estado` en `dañado`, `perdido`, `mantenimiento` o `no_disponible` aunque tenga unidades prestadas, y poner `perdido` a nivel de artículo no toca `cantidad`. Falta decidir: bloquearlo, permitirlo solo si no hay asignaciones activas, o dejarlo libre. Decidir también si se elimina el uso de `prestado` (no lo usa ninguna regla). (Ítem nuevo.)
-- [ ] Al asignar un `tipo_arco_id` a un artículo, validar que el tipo de arco esté `activo` — no existe. (Ítem nuevo.)
+- [x] La asignación exige un arquero `activo` — evidencia: `asignacion_validar_alta()` (reemplazada en `inventario_reglas_prestamo`) lee `arqueros.estado` (solo lectura, `SECURITY DEFINER`) antes de revisar el stock y da `No se puede prestar a "…": el arquero está inactivo.`; si el arquero no existe, "El arquero indicado no existe." Las devoluciones no dependen del estado del arquero. Pruebas "Prestar inventario a un arquero inactivo se rechaza", "Prestar piezas a un arquero inactivo se rechaza", "Se puede devolver aunque el arquero ya esté inactivo".
+- [x] Regla para cambiar el estado de un artículo con asignaciones activas — evidencia: `articulo_control_stock()` rechaza pasar a `mantenimiento`, `dañado` o `perdido` mientras haya unidades prestadas (`cantidad - cantidad_disponible > 0`, que incluye asignaciones `dañado`): `No se puede cambiar "…" a "…": hay N unidades prestadas. Primero registre la devolución.` Pruebas "Pasar a mantenimiento/dañado/perdido con unidades prestadas se rechaza", "Con un préstamo dañado (unidades fuera) la pieza no puede pasar a mantenimiento", "Sin unidades prestadas se puede pasar a mantenimiento". `no_disponible` sigue permitido con unidades prestadas (decisión confirmada el 10 oct 2026).
+- [x] `prestado` automático — evidencia: `articulo_control_stock()` pone `prestado` a un artículo en `disponible`/`prestado` cuando `cantidad > 0` y `cantidad_disponible = 0`, y lo devuelve a `disponible` cuando quedan unidades (por devolución o al subir `cantidad`). No se puede elegir a mano, ni al crear ni al editar: "El estado "prestado" se asigna automáticamente…". Si `cantidad` llega a 0 porque se perdieron las unidades prestadas (trigger de asignación), el artículo queda `perdido` (`inventario_perdido_total`). Bajar la cantidad a 0 a mano no es una pérdida y no cambia el estado. La migración normaliza primero los datos existentes. `no_disponible` sigue permitido con unidades prestadas (confirmado el 10 oct 2026). Pruebas "Sin unidades disponibles el artículo pasa a prestado", "Al quedar unidades disponibles el artículo vuelve a disponible", "Al bajar la cantidad hasta lo prestado el artículo vuelve a prestado", "Al devolver, el artículo vuelve a disponible", "Poner prestado a mano se rechaza", "Crear un artículo en estado prestado se rechaza", "Si se pierden todas las unidades, el artículo queda perdido (0/0)", "Bajar la cantidad a 0 a mano no marca el artículo como perdido". (Ítem nuevo.)
+- [x] Al asignar un `tipo_arco_id` a un artículo, validar que el tipo de arco esté `activo` — evidencia: `inventario_validar_tipo_arco()` con `trg_inventario_validar_tipo_arco` (`before insert or update of tipo_arco_id`): `El tipo de arco "…" está inactivo. Elija un tipo de arco activo.` Un artículo cuyo tipo se desactivó después se puede seguir editando si no cambia de tipo. Pruebas "Crear un arco con un tipo de arco inactivo se rechaza", "Cambiar un arco a un tipo de arco inactivo se rechaza", "Editar un arco cuyo tipo se desactivó después está permitido".
 
 ### Trazabilidad
 - [x] Vista de historial que una `asignaciones` y `asignaciones_piezas` (artículo, arquero, cantidad, fechas, estado, quién registró) — evidencia: `v_historial_asignaciones` (`security_invoker = true`) en `inventario_historial`; pruebas "Profesor ve todo el historial", "Usuario ve solo su historial", "Usuario sin arquero no ve historial", "Anónimo no puede consultar la vista de historial". Nota: `registrado_por_nombre` sale nulo para quien no puede leer ese perfil, por el RLS actual de `perfiles` (se resuelve en la sección 6, de acuerdo con Fernando).
 
 ### Seguridad (RLS)
-- [x] `tipos_arco`: todos leen; solo admin escribe — evidencia: políticas `tipos_arco: *` en `inventario_rls`; pruebas "Admin inserta/actualiza tipos de arco", "Profesor no puede insertar tipos de arco", "Usuario no puede insertar tipos de arco".
-- [~] `tipos_arco`: desactivar en lugar de eliminar — la columna `estado` existe, pero la política `tipos_arco: admin elimina` permite borrar. Si el tipo está en `inventario`, el FK `RESTRICT` lo impide; si solo está en `arqueros`, el borrado pasa y deja `arqueros.tipo_arco_id` en `NULL` (`arqueros_tipo_arco_id_fkey ... ON DELETE SET NULL`, tabla de Fernando). Falta quitar la política DELETE o bloquear el borrado si el tipo está en uso. (Ítem nuevo.)
+- [x] `tipos_arco`: todos leen; solo admin inserta y actualiza — evidencia: políticas `tipos_arco: *` en `inventario_rls`; pruebas "Admin inserta/actualiza tipos de arco", "Profesor no puede insertar tipos de arco", "Usuario no puede insertar tipos de arco".
+- [x] `tipos_arco`: desactivar en lugar de eliminar — evidencia: `inventario_reglas_prestamo` elimina la política `tipos_arco: admin elimina`; en local solo quedan `autenticados consultan`, `admin inserta` y `admin actualiza` (`pg_policies`). Un DELETE por API afecta 0 filas; prueba "Admin no puede borrar tipos de arco (solo se desactivan)". (Ítem nuevo.)
 - [x] `inventario`, `piezas`: staff lee y escribe; usuario lee solo los artículos de sus asignaciones; solo admin borra — evidencia: políticas `inventario: *` y `piezas: *`; pruebas "Profesor inserta inventario", "Profesor no puede borrar inventario", "Usuario ve solo los artículos que tiene o tuvo asignados", "Usuario no puede modificar inventario".
 - [x] `asignaciones`, `asignaciones_piezas`: staff lee, inserta y modifica; usuario lee las suyas; sin DELETE — evidencia: políticas `asignaciones: *` y `asignaciones_piezas: *`; pruebas "Usuario ve solo sus asignaciones", "Usuario no puede crear asignaciones", "Admin ve todas las asignaciones".
 - [x] Se eliminaron las políticas `true` anteriores de estas tablas — evidencia: 10 `drop policy` al inicio de `inventario_rls`; en la BD local solo quedan las 18 políticas nuevas (`pg_policies`, 10 oct 2026).
-- [?] Privilegios de `anon` sobre las tablas de inventario — `anon` conserva todos los privilegios del baseline (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, `TRIGGER`) sobre `inventario`, `piezas`, `asignaciones`, `asignaciones_piezas` y `tipos_arco` (consulta a `information_schema.role_table_grants` en local). RLS bloquea filas para `anon` y la vista sí tiene el privilegio revocado, pero `TRUNCATE` no pasa por RLS. PostgREST no expone `TRUNCATE`, así que el riesgo es bajo. Probar a mano con la clave anon (`INSERT`/`UPDATE`/`DELETE` vía REST deben devolver 0 filas o 401/403) y decidir si se revocan los privilegios de `anon` en estas 5 tablas. (Ítem nuevo.)
+- [x] Sin privilegios de `anon` sobre las tablas de inventario — evidencia: `revoke all ... from anon` sobre `inventario`, `piezas`, `asignaciones`, `asignaciones_piezas` y `tipos_arco` en `inventario_reglas_prestamo`; en local `information_schema.role_table_grants` da 0 filas para `anon` en esas tablas. Pruebas "anon no tiene privilegios sobre …" (una por tabla) y "Anónimo no puede consultar inventario" (42501). Las secuencias de esas tablas conservan sus privilegios del baseline (sin `INSERT`, `anon` no puede usarlas desde PostgREST). (Ítem nuevo.)
 
 ### Datos de desarrollo
-- [x] Seed local con usuarios por rol y datos de inventario — evidencia: `supabase/seed.sql` crea `admin@adetao.test`, `profesor@adetao.test` y `usuario@adetao.test` (vinculado a un arquero), 4 tipos de arco, 8 artículos (uno en `mantenimiento`), 6 piezas, 4 asignaciones de inventario (una devuelta) y 3 de piezas. En local: `ARC-001 4/2` y `ARC-003 1/0`, que cuadran con las asignaciones activas. Solo para local: las contraseñas son públicas. (Ítem nuevo.)
+- [x] Seed local con usuarios por rol y datos de inventario — evidencia: `supabase/seed.sql` crea `admin@adetao.test`, `profesor@adetao.test` y `usuario@adetao.test` (vinculado a un arquero), 4 tipos de arco, 8 artículos (uno en `mantenimiento`), 6 piezas, 4 asignaciones de inventario (una devuelta) y 3 de piezas. En local: `ARC-001 4/2` y `ARC-003 1/0`, que cuadran con las asignaciones activas; con las reglas de préstamo, ARC-003 queda `prestado` sin cambiar el seed. Solo para local: las contraseñas son públicas. (Ítem nuevo.)
 
 ### Validación
-- [x] Migraciones aplicadas sin errores en local — evidencia: 9 oct 2026, `npx supabase db reset` aplicó las 7 migraciones ("Finished supabase db reset"). 10 oct 2026: `npx supabase migration list --local` muestra las 7 aplicadas.
-- [x] Prueba de RLS por rol (admin, profesor, usuario) en `supabase/tests/` — evidencia: 10 oct 2026, `npx supabase test db` → `Files=1, Tests=75, Result: PASS` (también pasó el 9 oct). Cubre admin, profesor, usuario vinculado, usuario sin arquero y anónimo. Se corrió solo con el contenedor de Postgres (`supabase start -x ...`).
+- [x] Migraciones aplicadas sin errores en local — evidencia: 9 oct 2026, `npx supabase db reset` aplicó las 7 migraciones ("Finished supabase db reset"). 10 oct 2026: `npx supabase migration list --local` muestra las 7 aplicadas. 10 oct 2026, después de agregar las reglas de préstamo y `perdido` automático: `npx supabase db reset` aplicó las 9 migraciones y el seed ("Finished supabase db reset").
+- [x] Prueba de RLS por rol (admin, profesor, usuario) en `supabase/tests/` — evidencia: 10 oct 2026, `npx supabase test db` → `Files=1, Tests=109, Result: PASS` (antes de las reglas de préstamo: 75/75 el 9 y el 10 oct). Cubre admin, profesor, usuario vinculado, usuario sin arquero y anónimo. Se corrió solo con el contenedor de Postgres (`supabase start -x ...`).
 - [ ] Migraciones aplicadas en el proyecto DEV.
-- [ ] Migraciones aplicadas en producción (con confirmación explícita). Antes, revisar con consultas de solo lectura los arcos sin `tipo_arco_id`, los valores de `estado` que no se puedan mapear y que `cantidad_disponible` cuadre con las asignaciones activas.
+- [ ] Migraciones aplicadas en producción (con confirmación explícita). Antes, revisar con consultas de solo lectura los arcos sin `tipo_arco_id`, los valores de `estado` que no se puedan mapear, que `cantidad_disponible` cuadre con las asignaciones activas y qué filas en `disponible`/`prestado` cambiará la normalización de `inventario_reglas_prestamo`. Los artículos que ya estén en `mantenimiento`, `dañado` o `perdido` con unidades prestadas no se tocan.
 
 ---
 
@@ -121,11 +125,15 @@ Verificación del 10 oct 2026, contra la BD local (`127.0.0.1:54321`, usuarios d
 - Prueba de humo: un script temporal en Node cargó el `inventarioService.js` real con el SSR de Vite e inició sesión como admin, profesor y usuario. Resultado: **32 ok, 0 fallos**. Los registros de prueba se borraron al final y el script no queda en el repo.
 - Falta la revisión visual en el navegador (`npm run dev`).
 
+Verificación de las reglas de préstamo, 10 oct 2026 (BD local):
+- `npm run lint`: 0 errores; solo los 2 warnings de `Dashboard.jsx:17` (código compartido). `npm run build`: correcto.
+- En el navegador, como admin: la tabla de artículos alinea el texto a la izquierda y "Disponible / Total" a la derecha, y los códigos no se parten (`Inventario.css`: `.inv-col-codigo`, `.inv-col-numero`). En el cambio rápido de estado, ARC-001 (2 prestadas) y ARC-003 (prestado) muestran "Mantenimiento/Dañado/Perdido — Primero registre la devolución" deshabilitados; `prestado` aparece solo como valor actual, sin poder elegirse.
+
 ## 2. Catálogo de tipos de arco
 
 - [x] Listado — evidencia: `TiposArco.jsx` con nombre, descripción y estado, y la casilla "Mostrar inactivos"; `listarTiposArco()`. Prueba de humo: el admin lista los tipos.
 - [x] Crear y editar (nombre único con mensaje claro) — evidencia: modal en `TiposArco.jsx`, que revisa duplicados sin distinguir mayúsculas antes de enviar; como respaldo, `tipos_arco_nombre_unique` da "Ya existe un tipo de arco con ese nombre." (`traducirError`). Prueba de humo: crear, editar (una descripción vacía se guarda `null`) y nombre duplicado.
-- [~] Desactivar en lugar de eliminar — UI hecha: `cambiarEstadoTipoArco()` cambia `estado` a `inactivo`/`activo` y la UI no tiene opción de borrar. Prueba de humo: desactivar y reactivar. Falta en la BD: la política `tipos_arco: admin elimina` todavía permite borrar por API (ver sección 1, Seguridad).
+- [x] Desactivar en lugar de eliminar — evidencia: `cambiarEstadoTipoArco()` cambia `estado` a `inactivo`/`activo` y la UI no tiene opción de borrar. Prueba de humo: desactivar y reactivar. En la BD ya no hay política de DELETE (sección 1, Seguridad).
 - [x] Advertencia al desactivar un tipo de arco en uso (arqueros o inventario) — evidencia: `contarUsoTipoArco()` (conteo `head: true` en `inventario` y lectura de `arqueros`, que es de Fernando) y un modal de confirmación con "en uso por N arqueros y M artículos". Prueba de humo: Recurvo da 2 arqueros y 3 artículos; un tipo nuevo da 0 y 0. Los tipos inactivos no se ofrecen para arcos nuevos (`ArticuloForm.jsx`).
 - [x] Solo el administrador puede escribir (UI y RLS) — evidencia: en `TiposArco.jsx` los botones solo aparecen con `esAdmin`; el profesor ve el catálogo en solo lectura. RLS: `tipos_arco: admin *`. Prueba de humo: el profesor no puede crear ni desactivar ("No tiene permisos para realizar esta acción.").
 
@@ -135,9 +143,9 @@ Verificación del 10 oct 2026, contra la BD local (`127.0.0.1:54321`, usuarios d
 - [x] Filtros: tipo, estado, tipo de arco, con o sin unidades disponibles — evidencia: selectores en `ArticulosTabla.jsx`. El de tipo de arco solo aparece en inventario; hay un botón "Limpiar".
 - [x] Crear y editar: nombre, código, tipo, descripción, cantidad, ubicación, estado — evidencia: `ArticuloForm.jsx` y `guardarArticulo()`. El tipo se guarda en minúsculas y sin espacios sobrantes, un código vacío se guarda como `null` y nunca se envía `cantidad_disponible`. Prueba de humo: crear arco y diana (disponible = total) y editar ARC-001.
 - [x] Código único con mensaje claro — evidencia: `inventario_codigo_unique` da "Ya existe un artículo con ese código." Prueba de humo: código duplicado.
-- [x] Arcos: selección obligatoria de tipo de arco desde el catálogo — evidencia: si el tipo es `arco`, `ArticuloForm.jsx` muestra un selector obligatorio con los tipos activos (al editar se conserva el actual aunque esté inactivo); para otros tipos, `tipo_arco_id` se guarda `null`. Como respaldo, `inventario_arco_tipo_arco_check` da "Los arcos deben tener un tipo de arco." Prueba de humo: arco sin tipo rechazado; diana con `tipo_arco_id` nulo. Pendiente en la BD: validar que el tipo esté `activo` (sección 1).
+- [x] Arcos: selección obligatoria de tipo de arco desde el catálogo — evidencia: si el tipo es `arco`, `ArticuloForm.jsx` muestra un selector obligatorio con los tipos activos (al editar se conserva el actual aunque esté inactivo); para otros tipos, `tipo_arco_id` se guarda `null`. Como respaldo, `inventario_arco_tipo_arco_check` da "Los arcos deben tener un tipo de arco." Prueba de humo: arco sin tipo rechazado; diana con `tipo_arco_id` nulo. La BD también exige que el tipo esté `activo` (`inventario_validar_tipo_arco()`, sección 1).
 - [x] Mostrar cantidad total y disponible — evidencia: columna "Disponible / Total" (por ejemplo `2 / 4`); si no quedan unidades, el disponible se resalta en rojo.
-- [x] Cambiar estado del artículo (mantenimiento, dañado, no disponible) — evidencia: selector en cada fila (`cambiarEstadoArticulo()`) y campo estado en el formulario. Opciones: disponible, mantenimiento, dañado, no disponible y perdido. `prestado` solo aparece si el registro ya lo tiene, porque no participa en las reglas de stock. Prueba de humo: `mantenimiento` y `no_disponible`; un usuario no puede cambiarlo. Pendiente: la regla para artículos con asignaciones activas (sección 1).
+- [x] Cambiar estado del artículo (mantenimiento, dañado, no disponible) — evidencia: selector en cada fila (`cambiarEstadoArticulo()`) y campo estado en el formulario. Opciones: disponible, mantenimiento, dañado, no disponible y perdido. `prestado` lo calcula la BD: aparece solo como valor actual y no se puede elegir. Con unidades prestadas, mantenimiento, dañado y perdido salen deshabilitados con "Primero registre la devolución", en la tabla y en `ArticuloForm.jsx` (`opcionesEstado()` en `constantes.js`). Si la BD deja el artículo en `prestado` (por ejemplo, al elegir "Disponible" sin unidades), el aviso lo dice. Prueba de humo: `mantenimiento` y `no_disponible`; un usuario no puede cambiarlo.
 - [x] Ajuste de cantidad que no deje `cantidad` por debajo de lo asignado — evidencia: `ArticuloForm.jsx` valida contra `cantidad - cantidad_disponible` y muestra cuántas están asignadas; como respaldo, `articulo_control_stock()`. Prueba de humo: bajar ARC-001 a 1 da "No se puede reducir la cantidad de ... a 1: hay 2 unidades asignadas."; subirlo a 5 deja `5/3` y volver a 4 deja `4/2`.
 
 ## 4. Piezas
@@ -220,11 +228,11 @@ Todo lo de esta lista está fuera de `src/modules/inventario/` y de las migracio
 - `supabase/migrations/20261009150200_inventario_estructura.sql`: recrea `asignaciones_arquero_id_fkey` y `asignaciones_piezas_arquero_id_fkey` hacia `arqueros` con `ON DELETE RESTRICT` (antes `CASCADE`). Efecto en Fernando: un arquero con préstamos ya no se puede borrar.
 - `supabase/seed.sql`: inserta 4 arqueros y cambia `perfiles.rol` y `perfiles.arquero_id` de los usuarios de prueba (solo local).
 - `src/modules/dashboard/Dashboard.jsx` (10 oct 2026): un import de `Inventario` y la rama `activeMenu === 'inventario'` en `renderContenido()`. Nada más cambió.
+- `supabase/migrations/20261010120000_inventario_reglas_prestamo.sql`: `asignacion_validar_alta()` lee `arqueros.estado` (solo lectura) para rechazar préstamos a arqueros inactivos. No modifica la tabla `arqueros`, pero si Fernando cambia el significado de `estado`, esta regla cambia con él.
 
 **Necesarios a futuro:**
 - `src/modules/dashboard/Dashboard.jsx`: tarjeta "Inventario" con dato real; `onClick` de "+ Agregar inventario".
 - `src/modules/Sidebar/Sidebar.jsx`: entrada para que el rol `usuario` vea sus préstamos.
 - RLS de `perfiles`: que staff pueda leer el nombre de quien registró cada movimiento (`registrado_por_nombre`).
 - Política o flujo para asignar `perfiles.arquero_id` (quién vincula un usuario con su arquero).
-- `arqueros_tipo_arco_id_fkey` (`ON DELETE SET NULL`): decidir junto con el DELETE de `tipos_arco` (sección 1, Seguridad).
-- Lectura de `arqueros.estado` desde el trigger de asignación (validación de arquero activo, sección 1): solo lectura, pero conviene avisarlo.
+- `arqueros_tipo_arco_id_fkey` (`ON DELETE SET NULL`): ya no aplica desde inventario, porque `tipos_arco` no se puede borrar por API (sección 1, Seguridad).

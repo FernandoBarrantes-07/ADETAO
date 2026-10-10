@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(75);
+select plan(109);
 
 -- -----------------------------------------------------------------------------
 -- Datos de prueba (como postgres)
@@ -28,9 +28,14 @@ insert into public.arqueros (id, nombre, identificacion) values
   (1001, 'Arquero Uno', 'A-1001'),
   (1002, 'Arquero Dos', 'A-1002');
 
+insert into public.arqueros (id, nombre, identificacion, estado) values
+  (1003, 'Arquero Inactivo', 'A-1003', 'inactivo');
+
 update public.perfiles set arquero_id = 1001 where id = '33333333-3333-3333-3333-333333333333';
 
 insert into public.tipos_arco (id, nombre) values (1001, 'Recurvo de prueba');
+
+insert into public.tipos_arco (id, nombre, estado) values (1003, 'Tipo inactivo', 'inactivo');
 
 insert into public.inventario (id, nombre, codigo, tipo, tipo_arco_id, cantidad) values
   (1001, 'Arco recurvo', 'INV-1001', 'arco', 1001, 5),
@@ -277,6 +282,9 @@ select lives_ok(
   $$update public.tipos_arco set descripcion = 'Actualizado' where id = 1002$$,
   'Admin actualiza tipos de arco');
 
+with d as (delete from public.tipos_arco where id = 1002 returning 1)
+select is(count(*)::int, 0, 'Admin no puede borrar tipos de arco (solo se desactivan)') from d;
+
 with d as (delete from public.asignaciones where id = 2001 returning 1)
 select is(count(*)::int, 0, 'Admin no puede borrar asignaciones') from d;
 
@@ -354,8 +362,11 @@ reset role;
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
 
-select is((select count(*)::int from public.inventario), 0,
-  'Anónimo no ve inventario');
+select throws_ok(
+  $$select count(*) from public.inventario$$,
+  '42501',
+  null,
+  'Anónimo no puede consultar inventario');
 
 select throws_ok(
   $$select * from public.v_historial_asignaciones$$,
@@ -373,6 +384,171 @@ select throws_ok(
   '23503',
   null,
   'No se puede borrar un arquero con asignaciones (ON DELETE RESTRICT)');
+
+-- -----------------------------------------------------------------------------
+-- Privilegios de anon
+-- -----------------------------------------------------------------------------
+select ok(not has_table_privilege('anon', 'public.inventario',
+    'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'),
+  'anon no tiene privilegios sobre inventario');
+
+select ok(not has_table_privilege('anon', 'public.piezas',
+    'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'),
+  'anon no tiene privilegios sobre piezas');
+
+select ok(not has_table_privilege('anon', 'public.asignaciones',
+    'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'),
+  'anon no tiene privilegios sobre asignaciones');
+
+select ok(not has_table_privilege('anon', 'public.asignaciones_piezas',
+    'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'),
+  'anon no tiene privilegios sobre asignaciones_piezas');
+
+select ok(not has_table_privilege('anon', 'public.tipos_arco',
+    'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'),
+  'anon no tiene privilegios sobre tipos_arco');
+
+-- -----------------------------------------------------------------------------
+-- Reglas de préstamo (profesor)
+-- -----------------------------------------------------------------------------
+insert into public.inventario (id, nombre, codigo, tipo, tipo_arco_id, cantidad) values
+  (1005, 'Arco único', 'INV-1005', 'arco', 1001, 1);
+
+insert into public.piezas (id, nombre, codigo, cantidad) values
+  (1002, 'Cuerda', 'PZ-1002', 2);
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
+
+select throws_like(
+  $$insert into public.asignaciones (arquero_id, inventario_id, cantidad) values (1003, 1005, 1)$$,
+  'No se puede prestar a "Arquero Inactivo": el arquero está inactivo.',
+  'Prestar inventario a un arquero inactivo se rechaza');
+
+select throws_like(
+  $$insert into public.asignaciones_piezas (arquero_id, pieza_id, cantidad) values (1003, 1002, 1)$$,
+  'No se puede prestar a "Arquero Inactivo"%',
+  'Prestar piezas a un arquero inactivo se rechaza');
+
+select lives_ok(
+  $$insert into public.asignaciones (id, arquero_id, inventario_id, cantidad) values (2010, 1002, 1005, 1)$$,
+  'Prestar la última unidad de un artículo');
+
+select is((select estado::text from public.inventario where id = 1005), 'prestado',
+  'Sin unidades disponibles el artículo pasa a prestado');
+
+select throws_like(
+  $$update public.inventario set estado = 'mantenimiento' where id = 1005$$,
+  '%hay 1 unidades prestadas. Primero registre la devolución.',
+  'Pasar a mantenimiento con unidades prestadas se rechaza');
+
+select throws_like(
+  $$update public.inventario set estado = 'dañado' where id = 1005$$,
+  '%Primero registre la devolución.',
+  'Pasar a dañado con unidades prestadas se rechaza');
+
+select throws_like(
+  $$update public.inventario set estado = 'perdido' where id = 1005$$,
+  '%Primero registre la devolución.',
+  'Pasar a perdido con unidades prestadas se rechaza');
+
+select throws_like(
+  $$update public.inventario set estado = 'prestado' where id = 1004$$,
+  'El estado "prestado" se asigna automáticamente%',
+  'Poner prestado a mano se rechaza');
+
+select throws_like(
+  $$insert into public.inventario (nombre, codigo, tipo, cantidad, estado) values ('Carcaj 2', 'INV-1007', 'carcaj', 1, 'prestado')$$,
+  'El estado "prestado" se asigna automáticamente%',
+  'Crear un artículo en estado prestado se rechaza');
+
+select lives_ok(
+  $$update public.inventario set cantidad = 2 where id = 1005$$,
+  'Subir la cantidad de un artículo prestado');
+
+select is((select estado::text from public.inventario where id = 1005), 'disponible',
+  'Al quedar unidades disponibles el artículo vuelve a disponible');
+
+select lives_ok(
+  $$update public.inventario set cantidad = 1 where id = 1005$$,
+  'Bajar la cantidad hasta lo prestado');
+
+select is((select estado::text from public.inventario where id = 1005), 'prestado',
+  'Al bajar la cantidad hasta lo prestado el artículo vuelve a prestado');
+
+reset role;
+update public.arqueros set estado = 'inactivo' where id = 1002;
+set local role authenticated;
+
+select lives_ok(
+  $$update public.asignaciones set estado = 'devuelto' where id = 2010$$,
+  'Se puede devolver aunque el arquero ya esté inactivo');
+
+select is((select estado::text || ' ' || cantidad || '/' || cantidad_disponible from public.inventario where id = 1005),
+  'disponible 1/1',
+  'Al devolver, el artículo vuelve a disponible');
+
+select lives_ok(
+  $$insert into public.asignaciones_piezas (id, arquero_id, pieza_id, cantidad) values (3010, 1001, 1002, 1)$$,
+  'Prestar una pieza');
+
+select lives_ok(
+  $$update public.asignaciones_piezas set estado = 'dañado' where id = 3010$$,
+  'El préstamo de la pieza pasa a dañado');
+
+select is((select estado::text from public.piezas where id = 1002), 'disponible',
+  'Con unidades disponibles la pieza sigue disponible');
+
+select throws_like(
+  $$update public.piezas set estado = 'mantenimiento' where id = 1002$$,
+  '%Primero registre la devolución.',
+  'Con un préstamo dañado (unidades fuera) la pieza no puede pasar a mantenimiento');
+
+select lives_ok(
+  $$update public.inventario set estado = 'mantenimiento' where id = 1004$$,
+  'Sin unidades prestadas se puede pasar a mantenimiento');
+
+select lives_ok(
+  $$insert into public.asignaciones (id, arquero_id, inventario_id, cantidad) values (2011, 1001, 1005, 1)$$,
+  'Prestar de nuevo la única unidad');
+
+select lives_ok(
+  $$update public.asignaciones set estado = 'perdido' where id = 2011$$,
+  'Perder la única unidad prestada');
+
+select is((select estado::text || ' ' || cantidad || '/' || cantidad_disponible from public.inventario where id = 1005),
+  'perdido 0/0',
+  'Si se pierden todas las unidades, el artículo queda perdido (0/0)');
+
+select lives_ok(
+  $$update public.inventario set estado = 'disponible', cantidad = 0 where id = 1004$$,
+  'Bajar la cantidad a 0 a mano (sin préstamos)');
+
+select is((select estado::text from public.inventario where id = 1004), 'disponible',
+  'Bajar la cantidad a 0 a mano no marca el artículo como perdido');
+
+-- -----------------------------------------------------------------------------
+-- Tipo de arco activo (profesor)
+-- -----------------------------------------------------------------------------
+select throws_like(
+  $$insert into public.inventario (nombre, codigo, tipo, tipo_arco_id, cantidad) values ('Arco tipo inactivo', 'INV-1006', 'arco', 1003, 1)$$,
+  'El tipo de arco "Tipo inactivo" está inactivo. Elija un tipo de arco activo.',
+  'Crear un arco con un tipo de arco inactivo se rechaza');
+
+select throws_like(
+  $$update public.inventario set tipo_arco_id = 1003 where id = 1001$$,
+  '%está inactivo%',
+  'Cambiar un arco a un tipo de arco inactivo se rechaza');
+
+reset role;
+update public.tipos_arco set estado = 'inactivo' where id = 1001;
+set local role authenticated;
+
+select lives_ok(
+  $$update public.inventario set nombre = 'Arco recurvo editado' where id = 1001$$,
+  'Editar un arco cuyo tipo se desactivó después está permitido');
+
+reset role;
 
 select * from finish();
 

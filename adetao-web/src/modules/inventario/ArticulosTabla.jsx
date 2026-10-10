@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import ArticuloForm from './ArticuloForm'
-import { TEXTOS_TABLA, etiquetaEstado, opcionesEstado } from './constantes'
+import {
+  AVISO_DEVOLUCION,
+  ESTADOS_FILTRO,
+  TEXTOS_TABLA,
+  etiquetaEstado,
+  opcionesEstado,
+} from './constantes'
 import { cambiarEstadoArticulo, listarArticulos } from './inventarioService'
 
 const FILTROS_VACIOS = {
@@ -92,7 +98,9 @@ function ArticulosTabla({ tabla, tiposArco, puedeEditar }) {
       )))
       setMensaje({
         tipo: 'exito',
-        texto: `"${articulo.nombre}" ahora está en estado "${etiquetaEstado(estado)}".`,
+        texto: actualizado.estado === estado
+          ? `"${articulo.nombre}" ahora está en estado "${etiquetaEstado(estado)}".`
+          : `"${articulo.nombre}" sigue en estado "${etiquetaEstado(actualizado.estado)}": no tiene unidades disponibles.`,
       })
     } catch (err) {
       setMensaje({ tipo: 'error', texto: err.message })
@@ -141,8 +149,7 @@ function ArticulosTabla({ tabla, tiposArco, puedeEditar }) {
 
         <select value={filtros.estado} onChange={cambiarFiltro('estado')} aria-label="Estado">
           <option value="">Todos los estados</option>
-          {opcionesEstado(articulos.some((a) => a.estado === 'prestado') ? 'prestado' : null)
-            .map((e) => <option key={e.valor} value={e.valor}>{e.etiqueta}</option>)}
+          {ESTADOS_FILTRO.map((e) => <option key={e.valor} value={e.valor}>{e.etiqueta}</option>)}
         </select>
 
         {esInventario && (
@@ -194,7 +201,7 @@ function ArticulosTabla({ tabla, tiposArco, puedeEditar }) {
           <table className="inv-tabla">
             <thead>
               <tr>
-                <th>Código</th>
+                <th className="inv-col-codigo">Código</th>
                 <th>Nombre</th>
                 <th>Tipo</th>
                 {esInventario && <th>Tipo de arco</th>}
@@ -205,49 +212,62 @@ function ArticulosTabla({ tabla, tiposArco, puedeEditar }) {
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((a) => (
-                <tr key={a.id}>
-                  <td data-label="Código">{a.codigo || '—'}</td>
-                  <td data-label="Nombre">
-                    <strong>{a.nombre}</strong>
-                    {a.descripcion && <small className="inv-descripcion">{a.descripcion}</small>}
-                  </td>
-                  <td data-label="Tipo">{a.tipo || '—'}</td>
-                  {esInventario && <td data-label="Tipo de arco">{a.tipos_arco?.nombre || '—'}</td>}
-                  <td data-label="Ubicación">{a.ubicacion || '—'}</td>
-                  <td data-label="Disponible / Total" className="inv-col-numero">
-                    <span className={a.cantidad_disponible === 0 ? 'inv-sin-stock' : ''}>
-                      {a.cantidad_disponible}
-                    </span>
-                    {' / '}
-                    {a.cantidad}
-                  </td>
-                  <td data-label="Estado">
-                    {puedeEditar ? (
-                      <select
-                        className={`inv-select-estado ${a.estado}`}
-                        value={a.estado}
-                        disabled={cambiandoEstado === a.id}
-                        onChange={(e) => cambiarEstado(a, e.target.value)}
-                        aria-label={`Estado de ${a.nombre}`}
-                      >
-                        {opcionesEstado(a.estado).map((e) => (
-                          <option key={e.valor} value={e.valor}>{e.etiqueta}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className={`inv-badge ${a.estado}`}>{etiquetaEstado(a.estado)}</span>
-                    )}
-                  </td>
-                  {puedeEditar && (
-                    <td className="inv-col-acciones">
-                      <button className="inv-btn" onClick={() => setEditando(a)}>
-                        Editar
-                      </button>
+              {filtrados.map((a) => {
+                const prestadas = a.cantidad - a.cantidad_disponible
+
+                return (
+                  <tr key={a.id}>
+                    <td data-label="Código" className="inv-col-codigo">{a.codigo || '—'}</td>
+                    <td data-label="Nombre">
+                      <div>
+                        <strong>{a.nombre}</strong>
+                        {a.descripcion && <small className="inv-descripcion">{a.descripcion}</small>}
+                      </div>
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td data-label="Tipo">{a.tipo || '—'}</td>
+                    {esInventario && <td data-label="Tipo de arco">{a.tipos_arco?.nombre || '—'}</td>}
+                    <td data-label="Ubicación">{a.ubicacion || '—'}</td>
+                    <td data-label="Disponible / Total" className="inv-col-numero">
+                      <span>
+                        <span className={a.cantidad_disponible === 0 ? 'inv-sin-stock' : ''}>
+                          {a.cantidad_disponible}
+                        </span>
+                        {' / '}
+                        {a.cantidad}
+                      </span>
+                    </td>
+                    <td data-label="Estado">
+                      {puedeEditar ? (
+                        <select
+                          className={`inv-select-estado ${a.estado}`}
+                          value={a.estado}
+                          disabled={cambiandoEstado === a.id}
+                          onChange={(e) => cambiarEstado(a, e.target.value)}
+                          aria-label={`Estado de ${a.nombre}`}
+                          title={prestadas > 0
+                            ? `${prestadas} ${prestadas === 1 ? 'unidad prestada' : 'unidades prestadas'}. ${AVISO_DEVOLUCION} para pasar a mantenimiento, dañado o perdido.`
+                            : undefined}
+                        >
+                          {opcionesEstado(a.estado, prestadas).map((e) => (
+                            <option key={e.valor} value={e.valor} disabled={e.deshabilitado}>
+                              {e.etiqueta}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`inv-badge ${a.estado}`}>{etiquetaEstado(a.estado)}</span>
+                      )}
+                    </td>
+                    {puedeEditar && (
+                      <td className="inv-col-acciones">
+                        <button className="inv-btn" onClick={() => setEditando(a)}>
+                          Editar
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

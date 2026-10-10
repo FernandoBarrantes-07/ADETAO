@@ -171,6 +171,7 @@
   padding: 11px 10px;
   border-bottom: 1px solid #f0f0f0;
   color: #333333;
+  text-align: left;
   vertical-align: middle;
 }
 
@@ -184,13 +185,15 @@
   color: #888888;
 }
 
-.inv-col-numero {
+.inv-tabla th.inv-col-numero,
+.inv-tabla td.inv-col-numero {
   text-align: right;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-.inv-tabla th.inv-col-numero {
-  text-align: right;
+.inv-col-codigo {
+  white-space: nowrap;
 }
 
 .inv-col-acciones {
@@ -382,23 +385,32 @@
     border-bottom: 1px solid #e5e5e5;
   }
 
-  .inv-tabla td {
+  .inv-tabla td,
+  .inv-tabla td.inv-col-numero {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 12px;
     padding: 5px 0;
     border-bottom: none;
-    text-align: right;
+    text-align: left;
   }
 
   .inv-tabla td[data-label]::before {
     content: attr(data-label);
+    flex: 0 0 120px;
     color: #888888;
     font-weight: 600;
-    text-align: left;
   }
 
-  .inv-col-acciones {
+  .inv-tabla td.inv-col-numero {
+    justify-content: space-between;
+  }
+
+  .inv-tabla td.inv-col-numero::before {
+    flex: 1 1 auto;
+  }
+
+  .inv-tabla td.inv-col-acciones {
     justify-content: flex-end;
   }
 }
