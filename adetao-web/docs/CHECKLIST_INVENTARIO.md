@@ -18,6 +18,8 @@ Alcance: objetivo 4 del oficio ADETAO-00027-2026 y Plan de Trabajo 3.4. Registra
 
 Última auditoría: 10 oct 2026 (solo lectura; no se modificó código ni BD). Actualizado el 10 oct 2026 con las reglas de préstamo (migración `20261010120000_inventario_reglas_prestamo.sql`, solo en local). Secciones 8 y 9 actualizadas el 10 oct 2026 con los casos funcionales ejecutados en local y la documentación de `docs/inventario/` (sin cambios de código ni migraciones). Secciones 7 y 8 actualizadas el 10 oct 2026 tras corregir DEV-13, OBS-02 y OBS-04 (solo `src/modules/inventario/`, sin migraciones).
 
+Última verificación: 10 oct 2026, 2032c03, test db: Files=1, Tests=109, Result: PASS; lint: 0 errores (2 warnings en Dashboard.jsx:17); build: correcto. `db reset --local`: 9 migraciones y seed, correcto.
+
 ---
 
 ## Resumen del estado
