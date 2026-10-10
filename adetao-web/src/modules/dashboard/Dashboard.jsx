@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 
 import Sidebar from '../../modules/Sidebar/Sidebar'
 import Topbar from '../../modules/Topbar/Topbar'
+import Inventario from '../../modules/inventario/Inventario'
 
 import './Dashboard.css'
 
@@ -60,6 +61,10 @@ function Dashboard({ session }) {
           profile={profile}
         />
       )
+    }
+
+    if (activeMenu === 'inventario') {
+      return <Inventario profile={profile} />
     }
 
     return (
