@@ -139,3 +139,112 @@ export async function cambiarEstadoArticulo(tabla, id, estado) {
       .select()
   )
 }
+
+// -----------------------------------------------------------------------------
+// Arqueros (tabla del módulo de arqueros: solo lectura)
+// -----------------------------------------------------------------------------
+export async function listarArqueros({ soloActivos = false } = {}) {
+  let consulta = supabase
+    .from('arqueros')
+    .select('id, nombre, identificacion, estado')
+    .order('nombre')
+
+  if (soloActivos) {
+    consulta = consulta.eq('estado', 'activo')
+  }
+
+  return verificar(await consulta)
+}
+
+// -----------------------------------------------------------------------------
+// Préstamos (asignaciones y asignaciones_piezas) e historial
+// -----------------------------------------------------------------------------
+const TABLAS_PRESTAMO = {
+  inventario: { tabla: 'asignaciones', columna: 'inventario_id' },
+  pieza: { tabla: 'asignaciones_piezas', columna: 'pieza_id' },
+}
+
+function tablaPrestamo(tipoRegistro) {
+  const destino = TABLAS_PRESTAMO[tipoRegistro]
+  if (!destino) {
+    throw new Error(`Tipo de préstamo no válido: ${tipoRegistro}`)
+  }
+  return destino
+}
+
+const COLUMNAS_HISTORIAL = [
+  'tipo_registro', 'asignacion_id', 'articulo_id', 'articulo_codigo', 'articulo_nombre',
+  'arquero_id', 'arquero_nombre', 'arquero_identificacion', 'cantidad', 'fecha_asignacion',
+  'fecha_devolucion', 'estado', 'observaciones', 'registrado_por', 'registrado_por_nombre',
+].join(', ')
+
+export async function listarHistorial({ arqueroId, tipoRegistro, articuloId } = {}) {
+  let consulta = supabase
+    .from('v_historial_asignaciones')
+    .select(COLUMNAS_HISTORIAL)
+    .order('fecha_asignacion', { ascending: false })
+    .order('asignacion_id', { ascending: false })
+
+  if (arqueroId) consulta = consulta.eq('arquero_id', arqueroId)
+  if (tipoRegistro) consulta = consulta.eq('tipo_registro', tipoRegistro)
+  if (articuloId) consulta = consulta.eq('articulo_id', articuloId)
+
+  return verificar(await consulta)
+}
+
+export async function crearPrestamo({ tipoRegistro, articuloId, arqueroId, cantidad, observaciones }) {
+  const { tabla, columna } = tablaPrestamo(tipoRegistro)
+
+  return verificarFila(
+    await supabase
+      .from(tabla)
+      .insert({
+        arquero_id: Number(arqueroId),
+        [columna]: Number(articuloId),
+        cantidad: Number(cantidad),
+        observaciones: observaciones?.trim() || null,
+      })
+      .select('id')
+  )
+}
+
+export function agregarObservacion(previas, registro, fecha, texto) {
+  const dia = new Date(fecha).toLocaleDateString('es-CR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+  const linea = `[${dia} ${registro}]${texto?.trim() ? ` ${texto.trim()}` : ''}`
+  return previas?.trim() ? `${previas.trim()}\n${linea}` : linea
+}
+
+// La fecha_devolucion de un préstamo dañado es la de cuando el arquero lo
+// entregó; al repararlo o darlo de baja se conserva y la fecha queda en la nota.
+export async function registrarDevolucion({ prestamo, opcion, fecha, observaciones }) {
+  const { tabla } = tablaPrestamo(prestamo.tipo_registro)
+
+  const data = verificar(
+    await supabase
+      .from(tabla)
+      .update({
+        estado: opcion.estado,
+        fecha_devolucion: prestamo.fecha_devolucion ?? new Date(fecha).toISOString(),
+        observaciones: agregarObservacion(prestamo.observaciones, opcion.registro, fecha, observaciones),
+      })
+      .eq('id', prestamo.asignacion_id)
+      .eq('estado', prestamo.estado)
+      .select('id')
+  )
+
+  if (data.length > 0) return data[0]
+
+  const { data: actual } = await supabase
+    .from(tabla)
+    .select('estado')
+    .eq('id', prestamo.asignacion_id)
+    .maybeSingle()
+
+  throw new Error(actual && actual.estado !== prestamo.estado
+    ? `Este préstamo ya se registró como "${actual.estado}". Actualice la lista.`
+    : MENSAJE_SIN_PERMISO)
+}

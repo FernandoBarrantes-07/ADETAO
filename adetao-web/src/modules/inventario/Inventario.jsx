@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import ArticulosTabla from './ArticulosTabla'
+import Prestamos from './Prestamos'
 import TiposArco from './TiposArco'
 import { listarTiposArco } from './inventarioService'
 
@@ -9,6 +10,7 @@ import './Inventario.css'
 const PESTANAS = [
   { id: 'inventario', label: 'Artículos' },
   { id: 'piezas', label: 'Piezas' },
+  { id: 'prestamos', label: 'Préstamos', soloStaff: true },
   { id: 'tipos_arco', label: 'Tipos de arco' },
 ]
 
@@ -54,7 +56,7 @@ function Inventario({ profile }) {
       </div>
 
       <div className="inv-pestanas" role="tablist">
-        {PESTANAS.map((p) => (
+        {PESTANAS.filter((p) => esStaff || !p.soloStaff).map((p) => (
           <button
             key={p.id}
             role="tab"
@@ -67,7 +69,9 @@ function Inventario({ profile }) {
         ))}
       </div>
 
-      {pestana === 'tipos_arco' ? (
+      {pestana === 'prestamos' ? (
+        esStaff && <Prestamos />
+      ) : pestana === 'tipos_arco' ? (
         <TiposArco
           tipos={tiposArco}
           cargando={cargandoTipos}

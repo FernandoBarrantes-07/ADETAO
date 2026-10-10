@@ -38,6 +38,76 @@ export function opcionesEstado(estadoActual, unidadesPrestadas = 0) {
   return opciones
 }
 
+export const ESTADOS_ASIGNACION = [
+  { valor: 'activo', etiqueta: 'Activo' },
+  { valor: 'dañado', etiqueta: 'Dañado' },
+  { valor: 'devuelto', etiqueta: 'Devuelto' },
+  { valor: 'perdido', etiqueta: 'Perdido' },
+]
+
+// Un préstamo dañado sigue fuera del inventario hasta registrar la reparación.
+export const ESTADOS_PENDIENTES = ['activo', 'dañado']
+
+export function etiquetaAsignacion(estado) {
+  return ESTADOS_ASIGNACION.find((e) => e.valor === estado)?.etiqueta || estado
+}
+
+// Solo las transiciones que acepta asignacion_validar_cambio().
+export const OPCIONES_DEVOLUCION = {
+  activo: [
+    {
+      estado: 'devuelto',
+      etiqueta: 'Devolver en buen estado',
+      registro: 'Devuelto',
+      detalle: 'Las unidades vuelven a estar disponibles.',
+    },
+    {
+      estado: 'dañado',
+      etiqueta: 'Devolver dañado',
+      registro: 'Devuelto dañado',
+      detalle: 'Las unidades quedan fuera de servicio hasta registrar la reparación.',
+      requiereObservaciones: true,
+    },
+    {
+      estado: 'perdido',
+      etiqueta: 'Reportar como perdido',
+      registro: 'Perdido',
+      detalle: 'Las unidades se descuentan de la cantidad total.',
+      requiereObservaciones: true,
+    },
+  ],
+  dañado: [
+    {
+      estado: 'devuelto',
+      etiqueta: 'Reparado: vuelve al inventario',
+      registro: 'Reparado',
+      detalle: 'Las unidades vuelven a estar disponibles.',
+    },
+    {
+      estado: 'perdido',
+      etiqueta: 'Dar de baja como perdido',
+      registro: 'Perdido',
+      detalle: 'Las unidades se descuentan de la cantidad total.',
+      requiereObservaciones: true,
+    },
+  ],
+}
+
+export const TIPOS_REGISTRO = {
+  inventario: { tabla: 'inventario', etiqueta: 'Artículo' },
+  pieza: { tabla: 'piezas', etiqueta: 'Pieza' },
+}
+
+export function formatearFecha(valor, { conHora = true } = {}) {
+  if (!valor) return '—'
+  return new Date(valor).toLocaleString('es-CR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    ...(conHora && { hour: '2-digit', minute: '2-digit' }),
+  })
+}
+
 export const TIPOS_SUGERIDOS = {
   inventario: ['arco', 'diana', 'carcaj', 'protector', 'estabilizador'],
   piezas: ['flecha', 'cuerda', 'visor', 'accesorio', 'pala', 'empuñadura'],

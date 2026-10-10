@@ -8,6 +8,12 @@ const MENSAJES_CHECK = {
   inventario_arco_tipo_arco_check: 'Los arcos deben tener un tipo de arco.',
   inventario_cantidad_check: 'La cantidad no puede ser negativa.',
   piezas_cantidad_check: 'La cantidad no puede ser negativa.',
+  asignaciones_cantidad_check: 'La cantidad prestada debe ser mayor que 0.',
+  asignaciones_piezas_cantidad_check: 'La cantidad prestada debe ser mayor que 0.',
+  asignaciones_fechas_check: 'La fecha de devolución no puede ser anterior a la fecha del préstamo.',
+  asignaciones_piezas_fechas_check: 'La fecha de devolución no puede ser anterior a la fecha del préstamo.',
+  asignaciones_devuelto_fecha_check: 'Una devolución debe tener fecha.',
+  asignaciones_piezas_devuelto_fecha_check: 'Una devolución debe tener fecha.',
 }
 
 export const MENSAJE_SIN_PERMISO = 'No tiene permisos para realizar esta acción.'
@@ -18,12 +24,12 @@ export function traducirError(error) {
   const mensaje = error.message || ''
 
   if (error.code === '23505') {
-    const constraint = Object.keys(MENSAJES_UNIQUE).find((c) => mensaje.includes(c))
+    const constraint = Object.keys(MENSAJES_UNIQUE).find((c) => mensaje.includes(`"${c}"`))
     return constraint ? MENSAJES_UNIQUE[constraint] : 'Ya existe un registro con esos datos.'
   }
 
   if (error.code === '23514') {
-    const constraint = Object.keys(MENSAJES_CHECK).find((c) => mensaje.includes(c))
+    const constraint = Object.keys(MENSAJES_CHECK).find((c) => mensaje.includes(`"${c}"`))
     return constraint ? MENSAJES_CHECK[constraint] : 'Los datos no cumplen las reglas del sistema.'
   }
 

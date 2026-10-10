@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import ArticuloForm from './ArticuloForm'
+import HistorialArticulo from './HistorialArticulo'
 import {
   AVISO_DEVOLUCION,
   ESTADOS_FILTRO,
@@ -26,6 +27,7 @@ function ArticulosTabla({ tabla, tiposArco, puedeEditar }) {
   const [editando, setEditando] = useState(undefined)
   const [mensaje, setMensaje] = useState(null)
   const [cambiandoEstado, setCambiandoEstado] = useState(null)
+  const [historial, setHistorial] = useState(null)
 
   const textos = TEXTOS_TABLA[tabla]
   const esInventario = tabla === 'inventario'
@@ -260,6 +262,9 @@ function ArticulosTabla({ tabla, tiposArco, puedeEditar }) {
                     </td>
                     {puedeEditar && (
                       <td className="inv-col-acciones">
+                        <button className="inv-btn" onClick={() => setHistorial(a)}>
+                          Historial
+                        </button>
                         <button className="inv-btn" onClick={() => setEditando(a)}>
                           Editar
                         </button>
@@ -282,6 +287,10 @@ function ArticulosTabla({ tabla, tiposArco, puedeEditar }) {
           onCerrar={() => setEditando(undefined)}
           onGuardado={alGuardar}
         />
+      )}
+
+      {historial && (
+        <HistorialArticulo tabla={tabla} articulo={historial} onCerrar={() => setHistorial(null)} />
       )}
     </div>
   )

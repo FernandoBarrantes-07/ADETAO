@@ -28,14 +28,14 @@ Alcance: objetivo 4 del oficio ADETAO-00027-2026 y Plan de Trabajo 3.4. Registra
 | 2. Tipos de arco | 5 | 0 | 0 | 0 |
 | 3. Inventario | 8 | 0 | 0 | 0 |
 | 4. Piezas | 4 | 0 | 0 | 0 |
-| 5. Asignaciones | 1 | 6 | 1 | 0 |
-| 6. Trazabilidad | 0 | 4 | 0 | 0 |
+| 5. Asignaciones | 9 | 0 | 2 | 0 |
+| 6. Trazabilidad | 3 | 1 | 0 | 0 |
 | 7. Permisos en la UI | 0 | 3 | 1 | 0 |
 | 8. Calidad | 0 | 3 | 3 | 0 |
 | 9. Documentación | 0 | 0 | 4 | 0 |
-| 10. Dependencias con Fernando | 0 | 3 | 2 | 0 |
+| 10. Dependencias con Fernando | 0 | 4 | 1 | 0 |
 
-La BD del módulo está terminada y probada en local. La UI de tipos de arco, inventario y piezas existe en `src/modules/inventario/` y se abre desde el menú "Inventario" (secciones 2 a 4, 10 oct 2026). Faltan las asignaciones, los historiales y la vista del usuario (secciones 5 a 7).
+La BD del módulo está terminada y probada en local. La UI de tipos de arco, inventario y piezas existe en `src/modules/inventario/` y se abre desde el menú "Inventario" (secciones 2 a 4, 10 oct 2026). Préstamos, devoluciones e historiales están en la pestaña "Préstamos" (secciones 5 y 6, 10 oct 2026). Falta la vista del usuario ("Mis préstamos", sección 7).
 
 ---
 
@@ -113,7 +113,7 @@ Pruebas en `supabase/tests/database/inventario.test.sql` (109 pruebas pgTAP).
 ## UI del módulo (secciones 2 a 4)
 
 Archivos en `src/modules/inventario/`:
-- `Inventario.jsx`: contenedor con pestañas Artículos, Piezas y Tipos de arco, sin router. Se muestra desde el menú Inventario de `Dashboard.jsx` (ver sección 10).
+- `Inventario.jsx`: contenedor con pestañas Artículos, Piezas, Préstamos (solo staff, sección 5) y Tipos de arco, sin router. Se muestra desde el menú Inventario de `Dashboard.jsx` (ver sección 10).
 - `TiposArco.jsx`, `ArticulosTabla.jsx` (sirve para `inventario` y `piezas` según la prop `tabla`), `ArticuloForm.jsx`, `Modal.jsx`, `Inventario.css`.
 - `inventarioService.js`: consultas a Supabase. Si un UPDATE no devuelve filas (RLS), muestra "No tiene permisos para realizar esta acción."
 - `errores.js` (`traducirError`): convierte `23505`, `23514`, `23503` y `42501` a mensajes en español; los `P0001` de los triggers pasan tal cual.
@@ -157,25 +157,29 @@ Verificación de las reglas de préstamo, 10 oct 2026 (BD local):
 
 ## 5. Asignaciones (préstamos)
 
-No hay UI.
+UI en la pestaña "Préstamos" de `Inventario.jsx` (solo administrador y profesor), sin migraciones nuevas: usa `asignaciones`, `asignaciones_piezas`, sus triggers y `v_historial_asignaciones`.
+- Archivos: `Prestamos.jsx` (vistas "Préstamos activos" e "Historial por arquero"), `PrestamoForm.jsx`, `DevolucionForm.jsx`, `HistorialTabla.jsx`, `HistorialArquero.jsx`, `HistorialArticulo.jsx`, `SelectorArquero.jsx`; funciones `listarArqueros`, `listarHistorial`, `crearPrestamo`, `registrarDevolucion` y `agregarObservacion` en `inventarioService.js`; `OPCIONES_DEVOLUCION`, `ESTADOS_ASIGNACION` y `formatearFecha` en `constantes.js`.
+- Verificación del 10 oct 2026 (BD local): `npm run lint` sin errores (solo los 2 warnings de `Dashboard.jsx:17`, código compartido), `npm run build` correcto, y prueba de humo temporal con el `inventarioService.js` real (SSR de Vite) como admin, profesor y usuario: **27 ok, 0 fallos**. Los datos de prueba (prefijo `HUMO-`, incluidos dos arqueros temporales creados con psql) se borraron, se comprobó que el seed quedó igual (4 asignaciones, 3 de piezas, ARC-001 `4/2`, ARC-003 `1/0 prestado`) y el script se eliminó.
+- Revisión en el navegador como admin: listado, modal de nuevo préstamo, modal de devolución e historial por arquero. De paso se corrigió en `Inventario.css` el texto centrado y los campos oscuros que el módulo heredaba de `#root` (`index.css`), sin tocar el CSS global.
 
-- [~] Asignar artículo a un arquero: selector de arquero activo, cantidad, observaciones — BD, RLS y pruebas listos ("Profesor asigna con stock suficiente"). Falta UI, el selector de arqueros (sección 10) y la validación de arquero activo (sección 1).
-- [~] Asignar piezas a un arquero — BD y pruebas listos ("Profesor asigna piezas"). Falta UI.
-- [~] Mostrar el error de stock insuficiente de forma clara — la BD devuelve "Stock insuficiente para "…": se solicitaron N y hay M disponibles." Falta mostrarlo en la UI.
-- [~] Registrar devolución con fecha — BD: transición a `devuelto`, fecha automática si no se envía. Falta UI.
-- [~] Marcar como perdido o dañado — BD: transiciones probadas. Falta UI.
-- [~] Pasar de dañado a devuelto tras reparación — BD: prueba "Transición dañado -> devuelto". Falta UI.
-- [x] `registrado_por` se llena automáticamente — evidencia: default `auth.uid()` y `asignacion_validar_alta()`; prueba "registrado_por se fuerza a auth.uid() aunque se envíe otro valor". No requiere UI.
+- [x] Asignar artículo a un arquero: selector de arquero activo, cantidad, observaciones — evidencia: `PrestamoForm.jsx` busca entre los arqueros activos (`listarArqueros({ soloActivos: true })`, solo lectura de `arqueros`) y ofrece solo artículos `disponible` con unidades, con "N disp."; valida la cantidad contra lo disponible. `registrado_por`, `estado` y `fecha_asignacion` los pone la BD. Humo: "Selector: solo arqueros activos", "Admin presta 2 de 3" (`3/1`), "Sin unidades disponibles el artículo queda prestado" (`3/0 prestado`). Respaldo en BD: arquero activo (sección 1); humo "Prestar a un arquero inactivo" → `No se puede prestar a "HUMO Arquero inactivo": el arquero está inactivo.`
+- [x] Asignar piezas a un arquero — evidencia: el mismo modal con "Qué se presta: Pieza" (`asignaciones_piezas`). Humo: "Profesor presta 4 piezas" (`10/6`).
+- [x] Mostrar el error de stock insuficiente de forma clara — evidencia: validación en el modal ("Solo hay N unidades disponibles de …") y, como respaldo, el mensaje del trigger en la alerta del modal. Humo: "Prestar más de lo disponible" → `Stock insuficiente para "HUMO Diana": se solicitaron 2 y hay 1 disponibles.`
+- [x] Registrar devolución con fecha — evidencia: `DevolucionForm.jsx` con fecha y hora (por defecto ahora; no anterior al préstamo ni futura) y observaciones, que se agregan a las del préstamo como `[dd/mm/aaaa Devuelto] texto` (`agregarObservacion()`). Humo: "Devolución normal restaura stock y vuelve a disponible" (`3/2`), "Devolución normal: estado, fecha y observaciones agregadas", "Fecha de devolución anterior al préstamo" → "La fecha de devolución no puede ser anterior a la fecha del préstamo." (`asignaciones_fechas_check` en `errores.js`).
+- [x] Marcar como perdido o dañado — evidencia: el modal solo ofrece las transiciones de `asignacion_validar_cambio()` (`OPCIONES_DEVOLUCION`): desde activo, devolver en buen estado, dañado o perdido; las dos últimas piden observaciones. Humo: "Devolver dañado: no restaura stock y guarda la fecha" (`10/6`), "Devolver como perdido descuenta de la cantidad" (`7/7`). Una transición no permitida llega en español: "Transición de estado no permitida: de "devuelto" a "activo"."
+- [x] Pasar de dañado a devuelto tras reparación — evidencia: en un préstamo dañado el botón es "Cerrar" y ofrece "Reparado: vuelve al inventario" o "Dar de baja como perdido"; se conserva la `fecha_devolucion` de cuando se entregó dañado y la fecha de la reparación queda en la nota. Humo: "Dañado -> reparado restaura stock" (`10/10`), "Reparado conserva la fecha de entrega y suma la nota".
+- [x] `registrado_por` se llena automáticamente — evidencia: default `auth.uid()` y `asignacion_validar_alta()`; prueba "registrado_por se fuerza a auth.uid() aunque se envíe otro valor". La UI nunca lo envía.
+- [x] Devolución sobre una lista desactualizada — evidencia: `registrarDevolucion()` actualiza solo si el préstamo sigue en el estado que se mostró (`.eq('estado', …)`); si otra persona ya lo cerró, avisa `Este préstamo ya se registró como "…". Actualice la lista.` en lugar de duplicar la nota. Humo: "Devolver dos veces el mismo préstamo (lista desactualizada)". (Ítem nuevo.)
+- [x] Permisos: solo administrador y profesor prestan y devuelven — evidencia: la pestaña "Préstamos" y el botón "Historial" solo se renderizan con `esStaff`; RLS de respaldo. Humo: "Usuario no puede prestar" y "Usuario no puede registrar devoluciones" → "No tiene permisos para realizar esta acción."; "El préstamo del usuario sigue activo". La vista "Mis préstamos" del rol usuario va en otro paso (sección 7). (Ítem nuevo.)
+- [ ] Devolución parcial (por ejemplo, devolver 4 de 6 flechas) — no es posible: la BD no permite cambiar la `cantidad` de una asignación y la devolución cierra el préstamo completo. Si ADETAO lo necesita, hay que cambiar el modelo (por ejemplo, dividir la asignación). (Ítem nuevo.)
 - [ ] Definir con ADETAO si los préstamos tienen fecha límite de devolución (si sí, agregar `fecha_devolucion_prevista` y estado de préstamo vencido).
 
 ## 6. Trazabilidad e historiales
 
-No hay UI.
-
-- [~] Historial por artículo: quién lo tuvo, cuándo, en qué estado volvió — BD: `v_historial_asignaciones` filtrando por `tipo_registro` y `articulo_id`. Falta UI.
-- [~] Historial por arquero: qué tiene ahora y qué tuvo — BD: la misma vista filtrando por `arquero_id`; el usuario solo ve el suyo. Falta UI.
-- [~] Listado de préstamos activos — BD: la misma vista con `estado in ('activo', 'dañado')`. Falta UI.
-- [~] Mostrar el nombre de quien registró cada movimiento — BD: columna `registrado_por_nombre`. Para staff sale nulo salvo en sus propios registros, porque el RLS de `perfiles` solo deja leer el perfil propio (depende de Fernando, sección 10).
+- [x] Historial por artículo: quién lo tuvo, cuándo, en qué estado volvió — evidencia: botón "Historial" en cada fila de `ArticulosTabla.jsx` (artículos y piezas, solo staff) que abre `HistorialArticulo.jsx` con `listarHistorial({ tipoRegistro, articuloId })` sobre `v_historial_asignaciones`: arquero, cantidad, fechas, estado, registrado por y observaciones, con resumen de unidades fuera. Humo: "Historial por pieza: 2 préstamos".
+- [x] Historial por arquero: qué tiene ahora y qué tuvo — evidencia: vista "Historial por arquero" (`HistorialArquero.jsx`): se elige cualquier arquero (incluidos inactivos) y se ve "Tiene ahora" (activos y dañados, con acción Devolver/Cerrar) y "Préstamos anteriores". Humo: "Historial por arquero: 4 movimientos (2 artículo + 2 pieza)"; en el navegador, María muestra 2 préstamos activos (7 unidades) y 1 cerrado.
+- [x] Listado de préstamos activos — evidencia: vista "Préstamos activos" (`Prestamos.jsx`): arquero, artículo o pieza con código, cantidad, fechas, estado y registrado por; filtros por arquero, tipo, artículo o pieza y estado ("Pendientes (activos y dañados)" por defecto, o activo, dañado, devuelto, perdido, todos); búsqueda por nombre, identificación o código; mensajes de carga, lista vacía, sin resultados y error con "Reintentar". En el navegador: 6 pendientes de 7 registros del seed.
+- [~] Mostrar el nombre de quien registró cada movimiento — UI hecha: columna "Registrado por" con `registrado_por_nombre`; cuando la BD no lo devuelve se muestra "—" con la nota "Nombre no disponible". Humo: "El admin ve su nombre en "registrado por"" y "El profesor no ve el nombre del admin (RLS de perfiles)". Falta que el RLS de `perfiles` deje al staff leer el nombre de otros (depende de Fernando, sección 10).
 
 ## 7. Permisos en la interfaz
 
@@ -214,7 +218,7 @@ El RLS de las 5 tablas está hecho y probado por rol (sección 1). En la UI solo
 - [~] Funciones de rol (`rol_actual`, `es_admin`, `es_staff`, `mi_arquero_id`) acordadas — implementadas en `20261009150000_base_roles.sql` (`SECURITY DEFINER`, solo para `authenticated`; un perfil `inactivo` no tiene rol). Falta acordarlas con Fernando.
 - [~] `perfiles.arquero_id` acordado — implementado como `bigint UNIQUE` con FK a `arqueros(id)` `ON DELETE SET NULL` en la misma migración. Falta acordarlo con Fernando y definir quién lo asigna: hoy no hay política UPDATE en `perfiles`, así que solo el seed lo llena.
 - [~] Router y layout para agregar las páginas de inventario — no hay router. Mientras tanto, `Dashboard.jsx` tiene solo un import y una rama en `renderContenido()` (`if (activeMenu === 'inventario') return <Inventario profile={profile} />`); Sidebar y layout no cambiaron. **Pendiente de acordar con Fernando.**
-- [ ] Selector de arqueros (depende del módulo de arqueros) — hoy el RLS de `arqueros` es `true` para autenticados, así que el selector podría leer la tabla directamente, pero ese RLS es de Fernando y puede cambiar.
+- [~] Selector de arqueros (depende del módulo de arqueros) — hecho en `SelectorArquero.jsx` con `listarArqueros()`, que lee `id, nombre, identificacion, estado` de `arqueros` directamente (solo lectura). Funciona porque hoy el RLS de `arqueros` es `true` para autenticados; ese RLS es de Fernando y, si cambia, el staff debe seguir pudiendo leer esas columnas. Falta acordarlo.
 - [ ] Indicadores de inventario para el dashboard (objetivo 5) — la tarjeta "Inventario" del inicio muestra `0` fijo.
 
 ---

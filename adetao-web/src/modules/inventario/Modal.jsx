@@ -1,8 +1,8 @@
-function Modal({ titulo, onCerrar, children }) {
+function Modal({ titulo, onCerrar, ancho = false, children }) {
   return (
     <div className="inv-modal-fondo" onClick={onCerrar}>
       <div
-        className="inv-modal"
+        className={`inv-modal ${ancho ? 'inv-modal-ancho' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
