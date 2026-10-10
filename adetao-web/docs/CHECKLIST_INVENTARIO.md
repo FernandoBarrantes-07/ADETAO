@@ -16,7 +16,7 @@ Alcance: objetivo 4 del oficio ADETAO-00027-2026 y Plan de Trabajo 3.4. Registra
 | `[ ]` | Pendiente |
 | `[?]` | Por verificar: se indica qué probar a mano |
 
-Última auditoría: 10 oct 2026 (solo lectura; no se modificó código ni BD). Actualizado el 10 oct 2026 con las reglas de préstamo (migración `20261010120000_inventario_reglas_prestamo.sql`, solo en local).
+Última auditoría: 10 oct 2026 (solo lectura; no se modificó código ni BD). Actualizado el 10 oct 2026 con las reglas de préstamo (migración `20261010120000_inventario_reglas_prestamo.sql`, solo en local). Secciones 8 y 9 actualizadas el 10 oct 2026 con los casos funcionales ejecutados en local y la documentación de `docs/inventario/` (sin cambios de código ni migraciones).
 
 ---
 
@@ -31,8 +31,8 @@ Alcance: objetivo 4 del oficio ADETAO-00027-2026 y Plan de Trabajo 3.4. Registra
 | 5. Asignaciones | 9 | 0 | 2 | 0 |
 | 6. Trazabilidad | 3 | 1 | 0 | 0 |
 | 7. Permisos en la UI | 0 | 3 | 1 | 0 |
-| 8. Calidad | 0 | 3 | 3 | 0 |
-| 9. Documentación | 0 | 0 | 4 | 0 |
+| 8. Calidad | 5 | 1 | 1 | 0 |
+| 9. Documentación | 4 | 0 | 0 | 0 |
 | 10. Dependencias con Fernando | 0 | 4 | 1 | 0 |
 
 La BD del módulo está terminada y probada en local. La UI de tipos de arco, inventario y piezas existe en `src/modules/inventario/` y se abre desde el menú "Inventario" (secciones 2 a 4, 10 oct 2026). Préstamos, devoluciones e historiales están en la pestaña "Préstamos" (secciones 5 y 6, 10 oct 2026). Falta la vista del usuario ("Mis préstamos", sección 7).
@@ -192,26 +192,33 @@ El RLS de las 5 tablas está hecho y probado por rol (sección 1). En la UI solo
 
 ## 8. Calidad
 
-- [ ] Validaciones en cliente (cantidades positivas, campos obligatorios) — no hay formularios. La BD sí valida (`*_cantidad_check`, `NOT NULL`, triggers).
-- [~] Mensajes de error en español — todos los `raise exception` de los triggers están en español. Falta traducir en la UI los errores de Postgres que no son nuestros (`23505` UNIQUE, `23514` CHECK, `23503` FK, `42501` RLS).
-- [ ] Estados de carga y de listado vacío — no hay listados del módulo.
-- [ ] Diseño usable desde celular — no hay UI del módulo.
-- [~] Casos de prueba funcionales documentados — cubiertos a nivel BD por pgTAP (`inventario.test.sql`, 75/75 PASS); faltan casos funcionales de UI documentados:
-  - [~] Asignar con stock suficiente — pgTAP "Profesor asigna con stock suficiente".
-  - [~] Asignar sin stock suficiente — pgTAP "Asignar sin stock suficiente se rechaza" (inventario y piezas).
-  - [~] Devolver — pgTAP "Transición activo -> devuelto", "Devolver piezas".
-  - [~] Marcar perdido y dañado — pgTAP "Transición activo -> perdido", "Transición activo -> dañado", "Transición dañado -> perdido".
-  - [~] Intentar una transición inválida — pgTAP "Transición dañado -> activo se rechaza", "Transición devuelto -> activo se rechaza".
-  - [~] Intentar modificar cantidad o arquero de una asignación — pgTAP "Modificar la cantidad de una asignación se rechaza", "Cambiar el arquero de una asignación se rechaza".
-  - [~] Acceso por cada rol — pgTAP para admin, profesor, usuario vinculado, usuario sin arquero y anónimo.
-- [~] Linter sin errores ni warnings en los archivos del módulo — no hay archivos del módulo. `npx oxlint src` (10 oct 2026): 0 errores y 2 warnings, ambos en `Dashboard.jsx:16` (código compartido).
+Casos funcionales ejecutados el 10 oct 2026 en el navegador contra la BD local (`127.0.0.1:54321`, recién reiniciada, usuarios del seed), rama `inventario`, commit `bad46eb`: [`docs/inventario/casos-de-prueba.md`](inventario/casos-de-prueba.md). Resultado: 58 casos, 53 pasan, 2 pasan con observaciones (HIS-07, UI-01), 1 falla (DEV-13), 1 bloqueado (PER-05) y 1 no aplica (PER-06). Este paso no modificó código ni migraciones.
+
+- [x] Validaciones en cliente (cantidades positivas, campos obligatorios) — evidencia: `ArticuloForm.jsx` (nombre, tipo, tipo de arco si es arco, cantidad entera `>= 0` y no menor que lo asignado), `TiposArco.jsx` (nombre obligatorio y duplicado sin distinguir mayúsculas), `PrestamoForm.jsx` (arquero, artículo, cantidad entera `> 0` y no mayor que lo disponible), `DevolucionForm.jsx` (opción, fecha no anterior al préstamo ni futura, observaciones obligatorias para dañado y perdido). Casos TA-02, TA-03, ART-02, ART-03, ART-06, PZ-03, PRE-03, PRE-04, DEV-02, DEV-04, DEV-07, DEV-08 y DEV-09: Pasa. La BD valida lo mismo como respaldo.
+- [x] Mensajes de error en español — evidencia: `errores.js` (`traducirError`) traduce `23505`, `23514`, `23503` y `42501`, y deja pasar los `P0001` de los triggers, que ya están en español; "Failed to fetch" da "No se pudo conectar con el servidor. Revise su conexión." Casos con el mensaje copiado de la pantalla: ART-04 y PZ-02 (UNIQUE), PRE-05 (`Stock insuficiente…`), PRE-01/DEV-11 (arquero inactivo), ART-08 (`Primero registre la devolución`), DEV-10 (lista desactualizada), PER-02 a PER-04 (permisos). La tabla de mensajes y qué hacer ante cada uno está en el [manual de usuario](inventario/manual-usuario.md#11-si-aparece-este-mensaje).
+- [x] Estados de carga y de listado vacío — evidencia: caso UI-02 ("Cargando...", "Cargando arqueros y artículos...", "Ningún artículo coincide con los filtros.", "Ningún préstamo coincide con los filtros.", "Este artículo no se ha prestado nunca.", "Ningún arquero coincide con la búsqueda.", "Nada pendiente de devolución"). El estado de error con "Reintentar" existe en el código, pero no se forzó en la ejecución.
+- [~] Diseño usable desde celular — caso UI-01 (390 px): Pasa con observaciones. La tabla pasa a tarjetas y el modal ocupa una columna. Falta: la pestaña "Tipos de arco" queda fuera de la vista sin indicación de desplazamiento y el filtro de tipo de arco sobresale unos 40 px (OBS-04; se corrige en `Inventario.css`).
+- [x] Casos de prueba funcionales documentados — evidencia: [`casos-de-prueba.md`](inventario/casos-de-prueba.md), por rol y con formato ID, objetivo, precondiciones, pasos, datos, resultado esperado, resultado obtenido y estado, más el anexo regla de BD → prueba pgTAP → caso de UI.
+  - [x] Asignar con stock suficiente — PRE-06 y PRE-08; pgTAP "Profesor asigna con stock suficiente".
+  - [x] Asignar sin stock suficiente — PRE-04 y PRE-05 (otra persona presta con el formulario abierto); pgTAP "Asignar sin stock suficiente se rechaza".
+  - [x] Devolver — DEV-01, DEV-11 (arquero ya inactivo) y DEV-12 (procedimiento provisional de devolución parcial); pgTAP "Transición activo -> devuelto", "Devolver piezas". Falla DEV-13 (ver abajo).
+  - [x] Marcar perdido y dañado — DEV-02 a DEV-06; pgTAP "Transición activo -> perdido", "Transición activo -> dañado", "Transición dañado -> perdido".
+  - [x] Intentar una transición inválida — la UI solo ofrece las transiciones válidas (DEV-01 a DEV-05) y DEV-10 cubre el préstamo ya cerrado por otra persona; pgTAP "Transición dañado -> activo se rechaza", "Transición devuelto -> activo se rechaza".
+  - [x] Intentar modificar cantidad o arquero de una asignación — la UI no permite editar un préstamo; DEV-12 aplica el procedimiento provisional que reemplaza el cambio de cantidad; pgTAP "Modificar la cantidad de una asignación se rechaza", "Cambiar el arquero de una asignación se rechaza".
+  - [~] Acceso por cada rol — PER-01 a PER-04 y PER-06 (No aplica, cubierto en BD) para admin, profesor, usuario y anónimo. PER-05 ("Mis préstamos" del usuario) está bloqueado porque la vista no existe (sección 7). pgTAP cubre los cinco perfiles.
+- [x] Linter sin errores ni warnings en los archivos del módulo — evidencia: 10 oct 2026, `npm run lint` (oxlint): 0 errores; los 2 warnings son de `src/modules/dashboard/Dashboard.jsx:17` (código compartido), ninguno en `src/modules/inventario/`. `npm run build`: correcto. `npx supabase test db --local`: `Files=1, Tests=109, Result: PASS`.
+- [ ] Corregir DEV-13: devolver en el mismo minuto en que se registró el préstamo da "La fecha de devolución no puede ser anterior a la fecha del préstamo." `fecha_asignacion` tiene microsegundos y JavaScript la trunca a milisegundos, así que el ajuste `Math.max(fecha, fecha_asignacion)` de `DevolucionForm.jsx` (línea 57) queda una fracción antes del préstamo y lo rechaza `asignaciones_fechas_check`. Propuesta: sumar 1 ms o redondear hacia arriba al segundo. Mientras tanto, el manual indica esperar un minuto. (Ítem nuevo.)
+
+Otras observaciones de la ejecución, en [`casos-de-prueba.md`](inventario/casos-de-prueba.md#observaciones-fuera-de-los-casos): OBS-01, el panel se recarga al volver a la pestaña del navegador (`App.jsx`/`Dashboard.jsx`, **pendiente de acordar con Fernando**); OBS-02, falta un botón "Actualizar" en la lista de préstamos; OBS-03, la tarjeta "Inventario" del inicio del usuario (sección 10).
 
 ## 9. Documentación
 
-- [ ] Diagrama ER de las tablas de inventario.
-- [ ] Diagrama de transiciones de estado de las asignaciones — solo existe la tabla de transiciones en el comentario inicial de `20261009150300_inventario_stock.sql`.
-- [ ] Manual técnico: tablas, triggers, políticas y reglas de stock — la sección 1 de este archivo y los comentarios de las migraciones sirven de base.
-- [ ] Manual de usuario: registrar artículos, prestar, devolver y consultar historiales.
+Documentos en `docs/inventario/`, escritos el 10 oct 2026.
+
+- [x] Diagrama ER de las tablas de inventario — evidencia: [`documentacion-tecnica.md`, sección 1](inventario/documentacion-tecnica.md#1-modelo-de-datos) (mermaid `erDiagram`): las 5 tablas del módulo, `arqueros` y `perfiles` (de Fernando) y cada FK con su `ON DELETE`.
+- [x] Diagrama de transiciones de estado de las asignaciones — evidencia: [`documentacion-tecnica.md`, sección 4](inventario/documentacion-tecnica.md#4-estados-y-transiciones) (mermaid `stateDiagram-v2`) con el efecto en el stock y la opción de la UI de cada transición. Incluye también el diagrama de estados del artículo (`prestado` y `perdido` automáticos).
+- [x] Manual técnico: tablas, triggers, políticas y reglas de stock — evidencia: [`documentacion-tecnica.md`](inventario/documentacion-tecnica.md): tablas y restricciones, triggers con sus mensajes, matriz RLS por rol, vista `v_historial_asignaciones`, migraciones, estructura de `src/modules/inventario/`, cómo correr pgTAP/lint/build en local, dependencias con Fernando, límites conocidos (devolución parcial, fecha límite de devolución, "Registrado por" y RLS de `perfiles`) y problemas abiertos de la UI.
+- [x] Manual de usuario: registrar artículos, prestar, devolver y consultar historiales — evidencia: [`manual-usuario.md`](inventario/manual-usuario.md): entrar, ver el inventario, artículos, piezas, tipos de arco, prestar, devolver (normal, dañado, perdido), historiales, significado de cada estado y qué hacer ante cada mensaje. Indica que una devolución siempre es por la cantidad completa del préstamo e incluye el procedimiento provisional para devoluciones parciales. Las imágenes quedan como 19 marcadores `[CAPTURA: …]`.
 
 ## 10. Dependencias con Fernando
 
