@@ -25,17 +25,17 @@ Alcance: objetivo 4 del oficio ADETAO-00027-2026 y Plan de Trabajo 3.4. Registra
 | Sección | Hecho | Parcial | Pendiente | Por verificar |
 |---|---|---|---|---|
 | 1. Base de datos | 26 | 1 | 5 | 2 |
-| 2. Tipos de arco | 0 | 3 | 2 | 0 |
-| 3. Inventario | 0 | 5 | 3 | 0 |
-| 4. Piezas | 0 | 2 | 2 | 0 |
+| 2. Tipos de arco | 4 | 1 | 0 | 0 |
+| 3. Inventario | 8 | 0 | 0 | 0 |
+| 4. Piezas | 4 | 0 | 0 | 0 |
 | 5. Asignaciones | 1 | 6 | 1 | 0 |
 | 6. Trazabilidad | 0 | 4 | 0 | 0 |
 | 7. Permisos en la UI | 0 | 3 | 1 | 0 |
 | 8. Calidad | 0 | 3 | 3 | 0 |
 | 9. Documentación | 0 | 0 | 4 | 0 |
-| 10. Dependencias con Fernando | 0 | 2 | 3 | 0 |
+| 10. Dependencias con Fernando | 0 | 3 | 2 | 0 |
 
-La BD del módulo está terminada y probada en local. No existe ninguna interfaz: `src/modules/inventario/` no existe y el menú "Inventario" muestra un placeholder (ver sección 10).
+La BD del módulo está terminada y probada en local. La UI de tipos de arco, inventario y piezas existe en `src/modules/inventario/` y se abre desde el menú "Inventario" (secciones 2 a 4, 10 oct 2026). Faltan las asignaciones, los historiales y la vista del usuario (secciones 5 a 7).
 
 ---
 
@@ -106,37 +106,46 @@ Pruebas en `supabase/tests/database/inventario.test.sql` (75 pruebas pgTAP).
 
 ---
 
+## UI del módulo (secciones 2 a 4)
+
+Archivos en `src/modules/inventario/`:
+- `Inventario.jsx`: contenedor con pestañas Artículos, Piezas y Tipos de arco, sin router. Se muestra desde el menú Inventario de `Dashboard.jsx` (ver sección 10).
+- `TiposArco.jsx`, `ArticulosTabla.jsx` (sirve para `inventario` y `piezas` según la prop `tabla`), `ArticuloForm.jsx`, `Modal.jsx`, `Inventario.css`.
+- `inventarioService.js`: consultas a Supabase. Si un UPDATE no devuelve filas (RLS), muestra "No tiene permisos para realizar esta acción."
+- `errores.js` (`traducirError`): convierte `23505`, `23514`, `23503` y `42501` a mensajes en español; los `P0001` de los triggers pasan tal cual.
+- `constantes.js`: estados, etiquetas y textos.
+
+Verificación del 10 oct 2026, contra la BD local (`127.0.0.1:54321`, usuarios del seed):
+- `npx oxlint src/modules/inventario`: 0 errores y 0 warnings.
+- `npm run build`: correcto.
+- Prueba de humo: un script temporal en Node cargó el `inventarioService.js` real con el SSR de Vite e inició sesión como admin, profesor y usuario. Resultado: **32 ok, 0 fallos**. Los registros de prueba se borraron al final y el script no queda en el repo.
+- Falta la revisión visual en el navegador (`npm run dev`).
+
 ## 2. Catálogo de tipos de arco
 
-No hay UI: no existe página, componente ni servicio de tipos de arco.
-
-- [ ] Listado — falta UI.
-- [~] Crear y editar (nombre único con mensaje claro) — BD: `tipos_arco_nombre_unique`. Falta UI y traducir el error `23505` a un mensaje claro.
-- [~] Desactivar en lugar de eliminar — BD: columna `tipos_arco.estado`. Falta UI y quitar o restringir el DELETE (ver sección 1, Seguridad).
-- [ ] Advertencia al desactivar un tipo de arco en uso (arqueros o inventario) — no existe ni en BD ni en UI. Contar en `inventario` está en el alcance; contar en `arqueros` es solo lectura de una tabla de Fernando.
-- [~] Solo el administrador puede escribir (UI y RLS) — RLS hecho y probado (`tipos_arco: admin *`). Falta ocultar las acciones en la UI para profesor y usuario.
+- [x] Listado — evidencia: `TiposArco.jsx` con nombre, descripción y estado, y la casilla "Mostrar inactivos"; `listarTiposArco()`. Prueba de humo: el admin lista los tipos.
+- [x] Crear y editar (nombre único con mensaje claro) — evidencia: modal en `TiposArco.jsx`, que revisa duplicados sin distinguir mayúsculas antes de enviar; como respaldo, `tipos_arco_nombre_unique` da "Ya existe un tipo de arco con ese nombre." (`traducirError`). Prueba de humo: crear, editar (una descripción vacía se guarda `null`) y nombre duplicado.
+- [~] Desactivar en lugar de eliminar — UI hecha: `cambiarEstadoTipoArco()` cambia `estado` a `inactivo`/`activo` y la UI no tiene opción de borrar. Prueba de humo: desactivar y reactivar. Falta en la BD: la política `tipos_arco: admin elimina` todavía permite borrar por API (ver sección 1, Seguridad).
+- [x] Advertencia al desactivar un tipo de arco en uso (arqueros o inventario) — evidencia: `contarUsoTipoArco()` (conteo `head: true` en `inventario` y lectura de `arqueros`, que es de Fernando) y un modal de confirmación con "en uso por N arqueros y M artículos". Prueba de humo: Recurvo da 2 arqueros y 3 artículos; un tipo nuevo da 0 y 0. Los tipos inactivos no se ofrecen para arcos nuevos (`ArticuloForm.jsx`).
+- [x] Solo el administrador puede escribir (UI y RLS) — evidencia: en `TiposArco.jsx` los botones solo aparecen con `esAdmin`; el profesor ve el catálogo en solo lectura. RLS: `tipos_arco: admin *`. Prueba de humo: el profesor no puede crear ni desactivar ("No tiene permisos para realizar esta acción.").
 
 ## 3. Inventario (artículos)
 
-No hay UI: el menú "Inventario" muestra "Este módulo será desarrollado próximamente." (`renderContenido()` en `src/modules/dashboard/Dashboard.jsx`) y el botón "+ Agregar inventario" del inicio no tiene `onClick`.
-
-- [ ] Listado con búsqueda — falta UI.
-- [ ] Filtros: tipo, estado, tipo de arco, con o sin unidades disponibles — falta UI. BD: índices `idx_inventario_tipo`, `idx_inventario_estado`, `idx_inventario_tipo_arco`.
-- [ ] Crear y editar: nombre, código, tipo, descripción, cantidad, ubicación, estado — falta UI. BD y RLS listos (`inventario: staff inserta/actualiza`).
-- [~] Código único con mensaje claro — BD: `inventario_codigo_unique`. Falta UI y traducir el error `23505`.
-- [~] Arcos: selección obligatoria de tipo de arco desde el catálogo — BD: `inventario_arco_tipo_arco_check` y FK. Falta el selector en la UI (solo tipos `activo`).
-- [~] Mostrar cantidad total y disponible — BD: `cantidad` y `cantidad_disponible` mantenidas por triggers. Falta UI.
-- [~] Cambiar estado del artículo (mantenimiento, dañado, no disponible) — BD: enum `inventory_status` y política de UPDATE para staff; el trigger de alta ya impide prestar artículos en esos estados. Falta UI y la regla con asignaciones activas (sección 1).
-- [~] Ajuste de cantidad que no deje `cantidad` por debajo de lo asignado — BD: `articulo_control_stock()`; prueba "Bajar cantidad por debajo de lo asignado se rechaza". Falta UI que muestre el error.
+- [x] Listado con búsqueda — evidencia: `ArticulosTabla.jsx` (`tabla="inventario"`) busca por nombre, código, ubicación y descripción; muestra "N de M registros" y mensajes de carga, lista vacía y sin resultados.
+- [x] Filtros: tipo, estado, tipo de arco, con o sin unidades disponibles — evidencia: selectores en `ArticulosTabla.jsx`. El de tipo de arco solo aparece en inventario; hay un botón "Limpiar".
+- [x] Crear y editar: nombre, código, tipo, descripción, cantidad, ubicación, estado — evidencia: `ArticuloForm.jsx` y `guardarArticulo()`. El tipo se guarda en minúsculas y sin espacios sobrantes, un código vacío se guarda como `null` y nunca se envía `cantidad_disponible`. Prueba de humo: crear arco y diana (disponible = total) y editar ARC-001.
+- [x] Código único con mensaje claro — evidencia: `inventario_codigo_unique` da "Ya existe un artículo con ese código." Prueba de humo: código duplicado.
+- [x] Arcos: selección obligatoria de tipo de arco desde el catálogo — evidencia: si el tipo es `arco`, `ArticuloForm.jsx` muestra un selector obligatorio con los tipos activos (al editar se conserva el actual aunque esté inactivo); para otros tipos, `tipo_arco_id` se guarda `null`. Como respaldo, `inventario_arco_tipo_arco_check` da "Los arcos deben tener un tipo de arco." Prueba de humo: arco sin tipo rechazado; diana con `tipo_arco_id` nulo. Pendiente en la BD: validar que el tipo esté `activo` (sección 1).
+- [x] Mostrar cantidad total y disponible — evidencia: columna "Disponible / Total" (por ejemplo `2 / 4`); si no quedan unidades, el disponible se resalta en rojo.
+- [x] Cambiar estado del artículo (mantenimiento, dañado, no disponible) — evidencia: selector en cada fila (`cambiarEstadoArticulo()`) y campo estado en el formulario. Opciones: disponible, mantenimiento, dañado, no disponible y perdido. `prestado` solo aparece si el registro ya lo tiene, porque no participa en las reglas de stock. Prueba de humo: `mantenimiento` y `no_disponible`; un usuario no puede cambiarlo. Pendiente: la regla para artículos con asignaciones activas (sección 1).
+- [x] Ajuste de cantidad que no deje `cantidad` por debajo de lo asignado — evidencia: `ArticuloForm.jsx` valida contra `cantidad - cantidad_disponible` y muestra cuántas están asignadas; como respaldo, `articulo_control_stock()`. Prueba de humo: bajar ARC-001 a 1 da "No se puede reducir la cantidad de ... a 1: hay 2 unidades asignadas."; subirlo a 5 deja `5/3` y volver a 4 deja `4/2`.
 
 ## 4. Piezas
 
-No hay UI.
-
-- [ ] Listado con búsqueda y filtros — falta UI.
-- [ ] Crear y editar: nombre, código, tipo, descripción, cantidad, ubicación, estado — falta UI. BD y RLS listos (`piezas_codigo_unique`, `piezas: staff inserta/actualiza`).
-- [~] Mostrar cantidad total y disponible — BD: triggers `trg_piezas_control_stock` y de asignación. Falta UI.
-- [~] Cambiar estado — BD: `piezas.estado` (`inventory_status`) y RLS. Falta UI.
+- [x] Listado con búsqueda y filtros — evidencia: `ArticulosTabla.jsx` con `tabla="piezas"`: búsqueda y filtros por tipo, estado y disponibilidad.
+- [x] Crear y editar: nombre, código, tipo, descripción, cantidad, ubicación, estado — evidencia: `ArticuloForm.jsx` (en piezas el tipo es opcional y no hay tipo de arco). `piezas_codigo_unique` da "Ya existe una pieza con ese código." Prueba de humo: crear pieza (10/10), código duplicado (PZ-FLE-28), editar nombre, cantidad y estado, y no poder bajar PZ-FLE-28 a 5 (hay 12 asignadas).
+- [x] Mostrar cantidad total y disponible — evidencia: la misma columna "Disponible / Total".
+- [x] Cambiar estado — evidencia: selector en cada fila; prueba de humo: pieza a `dañado` y luego a `disponible` desde el formulario.
 
 ## 5. Asignaciones (préstamos)
 
@@ -196,7 +205,7 @@ El RLS de las 5 tablas está hecho y probado por rol (sección 1). En la UI solo
 
 - [~] Funciones de rol (`rol_actual`, `es_admin`, `es_staff`, `mi_arquero_id`) acordadas — implementadas en `20261009150000_base_roles.sql` (`SECURITY DEFINER`, solo para `authenticated`; un perfil `inactivo` no tiene rol). Falta acordarlas con Fernando.
 - [~] `perfiles.arquero_id` acordado — implementado como `bigint UNIQUE` con FK a `arqueros(id)` `ON DELETE SET NULL` en la misma migración. Falta acordarlo con Fernando y definir quién lo asigna: hoy no hay política UPDATE en `perfiles`, así que solo el seed lo llena.
-- [ ] Router y layout para agregar las páginas de inventario — no hay router. La navegación es el estado `activeMenu` de `Dashboard.jsx`; montar el módulo requiere agregar en `renderContenido()` un caso `activeMenu === 'inventario'` que renderice el componente del módulo.
+- [~] Router y layout para agregar las páginas de inventario — no hay router. Mientras tanto, `Dashboard.jsx` tiene solo un import y una rama en `renderContenido()` (`if (activeMenu === 'inventario') return <Inventario profile={profile} />`); Sidebar y layout no cambiaron. **Pendiente de acordar con Fernando.**
 - [ ] Selector de arqueros (depende del módulo de arqueros) — hoy el RLS de `arqueros` es `true` para autenticados, así que el selector podría leer la tabla directamente, pero ese RLS es de Fernando y puede cambiar.
 - [ ] Indicadores de inventario para el dashboard (objetivo 5) — la tarjeta "Inventario" del inicio muestra `0` fijo.
 
@@ -210,9 +219,10 @@ Todo lo de esta lista está fuera de `src/modules/inventario/` y de las migracio
 - `supabase/migrations/20261009150000_base_roles.sql`: agrega `perfiles.arquero_id` (UNIQUE, FK a `arqueros`, `ON DELETE SET NULL`) y las funciones `rol_actual()`, `es_admin()`, `es_staff()` y `mi_arquero_id()`.
 - `supabase/migrations/20261009150200_inventario_estructura.sql`: recrea `asignaciones_arquero_id_fkey` y `asignaciones_piezas_arquero_id_fkey` hacia `arqueros` con `ON DELETE RESTRICT` (antes `CASCADE`). Efecto en Fernando: un arquero con préstamos ya no se puede borrar.
 - `supabase/seed.sql`: inserta 4 arqueros y cambia `perfiles.rol` y `perfiles.arquero_id` de los usuarios de prueba (solo local).
+- `src/modules/dashboard/Dashboard.jsx` (10 oct 2026): un import de `Inventario` y la rama `activeMenu === 'inventario'` en `renderContenido()`. Nada más cambió.
 
 **Necesarios a futuro:**
-- `src/modules/dashboard/Dashboard.jsx`: montar el módulo en `renderContenido()`; tarjeta "Inventario" con dato real; `onClick` de "+ Agregar inventario".
+- `src/modules/dashboard/Dashboard.jsx`: tarjeta "Inventario" con dato real; `onClick` de "+ Agregar inventario".
 - `src/modules/Sidebar/Sidebar.jsx`: entrada para que el rol `usuario` vea sus préstamos.
 - RLS de `perfiles`: que staff pueda leer el nombre de quien registró cada movimiento (`registrado_por_nombre`).
 - Política o flujo para asignar `perfiles.arquero_id` (quién vincula un usuario con su arquero).
