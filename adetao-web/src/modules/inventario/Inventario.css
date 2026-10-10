@@ -336,12 +336,20 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Misma sombra de desplazamiento que .inv-pestanas. Las tapas usan #f7f7f7,
+   el fondo de .inv-segmentado, porque esta regla reemplaza ese background. */
 .inv-vistas {
   display: flex;
   width: fit-content;
   max-width: 100%;
   margin-bottom: 16px;
   overflow-x: auto;
+  background:
+    linear-gradient(to right, #f7f7f7 30%, rgba(247, 247, 247, 0)) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, #f7f7f7 30%, rgba(247, 247, 247, 0)) right center / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.3), transparent) left center / 18px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.3), transparent) right center / 18px 100% no-repeat scroll,
+    #f7f7f7;
 }
 
 .inv-subtitulo {

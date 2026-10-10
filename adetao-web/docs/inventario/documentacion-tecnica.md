@@ -574,7 +574,7 @@ Encontrados en la ejecución de los casos de prueba del 10 oct 2026. DEV-13, OBS
 |---|---|---|---|
 | DEV-13 | Devolver en el mismo minuto del préstamo daba "La fecha de devolución no puede ser anterior a la fecha del préstamo." (microsegundos de `fecha_asignacion` truncados a milisegundos). | `DevolucionForm.jsx`, `constantes.js` | `fechaDevolucionFinal()` (sección 8). DEV-13 pasa. |
 | OBS-02 | El aviso "Actualice la lista" no tenía un botón para hacerlo. | `inventarioService.js`, `DevolucionForm.jsx`, `Prestamos.jsx` | Botón "Actualizar" en el aviso; cierra el modal y recarga la lista. DEV-10 pasa. |
-| OBS-04 | En 390 px, la pestaña "Tipos de arco" quedaba fuera de la pantalla sin indicación y el filtro de tipo de arco sobresalía unos 40 px. | `Inventario.css` | Sombras de desplazamiento en `.inv-pestanas` (`background-attachment: local`/`scroll`; las tapas usan `#f5f5f5`, el fondo de `.dashboard`) y `min-width: 0` en los filtros a 750 px o menos. UI-01 pasa. |
+| OBS-04 | En 390 px, la pestaña "Tipos de arco" quedaba fuera de la pantalla sin indicación y el filtro de tipo de arco sobresalía unos 40 px. El selector "Préstamos activos / Historial por arquero" cortaba unos 21 px sin sombra. | `Inventario.css` | Sombras de desplazamiento en `.inv-pestanas` y en `.inv-vistas` (`background-attachment: local`/`scroll`; tapas `#f5f5f5` en las pestañas y `#f7f7f7` en el selector) y `min-width: 0` en los filtros a 750 px o menos. UI-01 pasa. |
 
 Siguen abiertos:
 
@@ -582,4 +582,3 @@ Siguen abiertos:
 |---|---|---|---|
 | OBS-01 | El panel completo se recarga cada vez que la pestaña del navegador vuelve a quedar visible: se pierde la pestaña activa y cualquier formulario abierto. Cada `visibilitychange` hace que supabase-js emita un evento de sesión con un objeto nuevo; `App.jsx` llama a `setSession` y `Dashboard.jsx` vuelve a cargar el perfil (`useEffect(…, [session])`). | `App.jsx`, `Dashboard.jsx` (compartidos) | **Pendiente de acordar con Fernando:** depender de `session.user.id` en lugar del objeto `session`, o no mostrar "Cargando sistema…" al refrescar. |
 | OBS-03 | El inicio del rol usuario muestra la tarjeta "Inventario" con `0` fijo y "+ Agregar inventario" sin acción. | `Dashboard.jsx` (compartido) | **Pendiente de acordar con Fernando** (sección 10). |
-| UI-01 (detalle) | En 390 px, el selector "Préstamos activos / Historial por arquero" (`.inv-vistas`) mide 305 px en 284 px y corta unos 21 px; se desliza, pero sin sombra. | `Inventario.css` | Aplicar a `.inv-vistas` las mismas sombras de `.inv-pestanas` (tapas con `#f7f7f7`) o reducir el relleno de sus botones en pantallas angostas. |
