@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import Sidebar from '../../modules/Sidebar/Sidebar'
 import Topbar from '../../modules/Topbar/Topbar'
 import Inventario from '../../modules/inventario/Inventario'
+import Arqueros from '../../modules/Arqueros/Arqueros'
 
 import './Dashboard.css'
 
@@ -66,6 +67,13 @@ function Dashboard({ session }) {
     if (activeMenu === 'inventario') {
       return <Inventario profile={profile} />
     }
+    if (activeMenu === 'arqueros') {
+  return (
+    <Arqueros
+      onDataChange={cargarDatos}
+    />
+  )
+}
 
     return (
       <div className="module-placeholder">
