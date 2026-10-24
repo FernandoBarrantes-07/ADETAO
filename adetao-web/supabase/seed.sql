@@ -58,6 +58,16 @@ insert into public.tipos_arco (nombre, descripcion) values
   ('Tradicional', 'Longbow y arcos de madera');
 
 -- -----------------------------------------------------------------------------
+-- Clubes (los arqueros de prueba siguen sin club)
+-- -----------------------------------------------------------------------------
+insert into public.clubes (nombre, ubicacion, descripcion) values
+  ('Club de Tiro con Arco de San Ramón', 'San Ramón', 'Campo de entrenamiento en el occidente'),
+  ('Arqueros de Naranjo', 'Naranjo', null);
+
+insert into public.clubes (nombre, ubicacion, descripcion, estado) values
+  ('Club Occidente', 'Grecia', 'Club en pausa', 'inactivo');
+
+-- -----------------------------------------------------------------------------
 -- Arqueros
 -- -----------------------------------------------------------------------------
 insert into public.arqueros (nombre, identificacion, fecha_nacimiento, telefono, correo, mano_dominante, tipo_arco_id)

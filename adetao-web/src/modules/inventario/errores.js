@@ -2,6 +2,8 @@ const MENSAJES_UNIQUE = {
   tipos_arco_nombre_unique: 'Ya existe un tipo de arco con ese nombre.',
   inventario_codigo_unique: 'Ya existe un artículo con ese código.',
   piezas_codigo_unique: 'Ya existe una pieza con ese código.',
+  clubes_nombre_unique: 'Ya existe un club con ese nombre.',
+  clubes_nombre_lower_unique: 'Ya existe un club con ese nombre.',
 }
 
 const MENSAJES_CHECK = {
