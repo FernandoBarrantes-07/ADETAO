@@ -5,14 +5,25 @@ import Sidebar from '../../modules/Sidebar/Sidebar'
 import Topbar from '../../modules/Topbar/Topbar'
 import Inventario from '../../modules/inventario/Inventario'
 import Arqueros from '../../modules/Arqueros/Arqueros'
+import Clubes from '../../modules/clubes/Clubes'
 
 import './Dashboard.css'
 
 function Dashboard({ session }) {
   const [profile, setProfile] = useState(null)
   const [arqueros, setArqueros] = useState([])
+  const [totalClubes, setTotalClubes] = useState(0)
   const [activeMenu, setActiveMenu] = useState('inicio')
   const [loading, setLoading] = useState(true)
+
+  const actualizarTotalClubes = async () => {
+    const { count, error } = await supabase
+      .from('clubes')
+      .select('id', { count: 'exact', head: true })
+      .eq('estado', 'activo')
+
+    setTotalClubes(error ? 0 : count ?? 0)
+  }
 
   useEffect(() => {
     cargarDatos()
@@ -46,6 +57,7 @@ function Dashboard({ session }) {
         .order('nombre')
 
     setArqueros(arquerosData || [])
+    await actualizarTotalClubes()
 
     setLoading(false)
   }
@@ -60,12 +72,24 @@ function Dashboard({ session }) {
         <Inicio
           arqueros={arqueros}
           profile={profile}
+          totalClubes={totalClubes}
+          esAdmin={profile?.rol === 'administrador'}
+          onRegistrarClub={() => setActiveMenu('clubes')}
         />
       )
     }
 
     if (activeMenu === 'inventario') {
       return <Inventario profile={profile} />
+    }
+
+    if (activeMenu === 'clubes') {
+      return (
+        <Clubes
+          profile={profile}
+          onCambio={actualizarTotalClubes}
+        />
+      )
     }
     if (activeMenu === 'arqueros') {
   return (
@@ -133,7 +157,7 @@ function obtenerTituloModulo(menu) {
   return titulos[menu] || 'Módulo'
 }
 
-function Inicio({ arqueros, profile }) {
+function Inicio({ arqueros, profile, totalClubes, esAdmin, onRegistrarClub }) {
   return (
     <div>
 
@@ -169,7 +193,7 @@ function Inicio({ arqueros, profile }) {
 
           <div>
             <span>Clubes</span>
-            <strong>0</strong>
+            <strong>{totalClubes}</strong>
           </div>
         </div>
 
@@ -269,9 +293,11 @@ function Inicio({ arqueros, profile }) {
               + Registrar arquero
             </button>
 
-            <button>
-              + Registrar club
-            </button>
+            {esAdmin && (
+              <button onClick={onRegistrarClub}>
+                + Registrar club
+              </button>
+            )}
 
             <button>
               + Agregar inventario

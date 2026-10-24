@@ -75,7 +75,7 @@ function Arqueros({ onDataChange }) {
 
       supabase
         .from('clubes')
-        .select('id, nombre')
+        .select('id, nombre, estado')
         .order('nombre'),
 
       supabase
@@ -664,14 +664,20 @@ function Arqueros({ onDataChange }) {
                         Sin club
                       </option>
 
-                      {clubes.map((club) => (
-                        <option
-                          key={club.id}
-                          value={club.id}
-                        >
-                          {club.nombre}
-                        </option>
-                      ))}
+                      {clubes
+                        .filter((club) => (
+                          club.estado === 'activo'
+                          || String(club.id) === String(formulario.club_id)
+                        ))
+                        .map((club) => (
+                          <option
+                            key={club.id}
+                            value={club.id}
+                          >
+                            {club.nombre}
+                            {club.estado === 'inactivo' ? ' (inactivo)' : ''}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
