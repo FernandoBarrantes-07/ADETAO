@@ -267,6 +267,10 @@ function Arqueros({ onDataChange }) {
     }
   }
 
+  // El club con el que se abrió la edición. No sigue a formulario.club_id,
+  // así se puede volver al original inactivo antes de guardar.
+  const clubIdOriginal = arqueroEditando?.club_id ?? ''
+
   const arquerosFiltrados = arqueros.filter((arquero) => {
     const texto = busqueda.toLowerCase()
 
@@ -667,7 +671,7 @@ function Arqueros({ onDataChange }) {
                       {clubes
                         .filter((club) => (
                           club.estado === 'activo'
-                          || String(club.id) === String(formulario.club_id)
+                          || String(club.id) === String(clubIdOriginal)
                         ))
                         .map((club) => (
                           <option
