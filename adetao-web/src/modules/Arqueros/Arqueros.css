@@ -186,7 +186,7 @@
   text-transform: capitalize;
 }
 
-.payment-pagado {
+.payment-al_dia {
   background: rgba(40, 167, 69, 0.15);
   color: #55c978;
 }
@@ -194,6 +194,11 @@
 .payment-pendiente {
   background: rgba(255, 193, 7, 0.15);
   color: #e8bd45;
+}
+
+.payment-vencido {
+  background: rgba(200, 16, 46, 0.15);
+  color: #ff647d;
 }
 
 .record-activo {
@@ -211,8 +216,17 @@
   gap: 7px;
 }
 
+.arqueros-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
 .btn-edit,
-.btn-delete {
+.btn-estado {
   width: 34px;
   height: 34px;
   border-radius: 7px;
@@ -222,14 +236,15 @@
   color: #ddd;
 }
 
-.btn-edit:hover {
-  border-color: #777;
+.btn-estado {
+  width: auto;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
-.btn-delete:hover {
-  background: #c8102e;
-  border-color: #c8102e;
-  color: white;
+.btn-edit:hover,
+.btn-estado:hover {
+  border-color: #777;
 }
 
 .loading-module,

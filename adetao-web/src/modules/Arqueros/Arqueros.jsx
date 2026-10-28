@@ -3,6 +3,12 @@ import { supabase } from '../../lib/supabase'
 
 import './Arqueros.css'
 
+export const ESTADOS_PAGO = {
+  al_dia: 'Al día',
+  pendiente: 'Pendiente',
+  vencido: 'Vencido',
+}
+
 function Arqueros({ onDataChange }) {
   const [arqueros, setArqueros] = useState([])
   const [clubes, setClubes] = useState([])
@@ -12,6 +18,7 @@ function Arqueros({ onDataChange }) {
   const [guardando, setGuardando] = useState(false)
 
   const [busqueda, setBusqueda] = useState('')
+  const [mostrarInactivos, setMostrarInactivos] = useState(false)
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [arqueroEditando, setArqueroEditando] = useState(null)
@@ -237,9 +244,12 @@ function Arqueros({ onDataChange }) {
     }
   }
 
-  const eliminarArquero = async (arquero) => {
+  const cambiarEstado = async (arquero) => {
+    const activar = arquero.estado !== 'activo'
     const confirmar = window.confirm(
-      `¿Está seguro de eliminar a ${arquero.nombre}?`
+      activar
+        ? `¿Reactivar a ${arquero.nombre}?`
+        : `¿Desactivar a ${arquero.nombre}? Seguirá en el registro.`
     )
 
     if (!confirmar) return
@@ -247,18 +257,26 @@ function Arqueros({ onDataChange }) {
     setError('')
     setMensaje('')
 
-    const { error: eliminarError } = await supabase
+    const { error: estadoError } = await supabase
       .from('arqueros')
-      .delete()
+      .update({ estado: activar ? 'activo' : 'inactivo' })
       .eq('id', arquero.id)
 
-    if (eliminarError) {
-      console.error(eliminarError)
-      setError('No se pudo eliminar el arquero.')
+    if (estadoError) {
+      console.error(estadoError)
+      setError(
+        activar
+          ? 'No se pudo reactivar el arquero.'
+          : 'No se pudo desactivar el arquero.'
+      )
       return
     }
 
-    setMensaje('Arquero eliminado correctamente.')
+    setMensaje(
+      activar
+        ? `${arquero.nombre} se reactivó.`
+        : `${arquero.nombre} se desactivó.`
+    )
 
     await cargarDatos()
 
@@ -272,6 +290,8 @@ function Arqueros({ onDataChange }) {
   const clubIdOriginal = arqueroEditando?.club_id ?? ''
 
   const arquerosFiltrados = arqueros.filter((arquero) => {
+    if (!mostrarInactivos && arquero.estado !== 'activo') return false
+
     const texto = busqueda.toLowerCase()
 
     return (
@@ -325,6 +345,15 @@ function Arqueros({ onDataChange }) {
           />
         </div>
 
+        <label className="arqueros-check">
+          <input
+            type="checkbox"
+            checked={mostrarInactivos}
+            onChange={(e) => setMostrarInactivos(e.target.checked)}
+          />
+          Mostrar inactivos
+        </label>
+
         <div className="total-arqueros">
           {arquerosFiltrados.length} arqueros
         </div>
@@ -345,10 +374,12 @@ function Arqueros({ onDataChange }) {
             <p>
               {busqueda
                 ? 'No se encontraron resultados para la búsqueda.'
-                : 'Registre el primer arquero para comenzar.'}
+                : arqueros.length > 0
+                  ? 'No hay arqueros activos. Marque "Mostrar inactivos" para verlos.'
+                  : 'Registre el primer arquero para comenzar.'}
             </p>
 
-            {!busqueda && (
+            {!busqueda && arqueros.length === 0 && (
               <button
                 className="btn-primary"
                 onClick={abrirNuevo}
@@ -418,7 +449,7 @@ function Arqueros({ onDataChange }) {
                       <span
                         className={`status-badge payment-${arquero.estado_pago}`}
                       >
-                        {arquero.estado_pago}
+                        {ESTADOS_PAGO[arquero.estado_pago] || arquero.estado_pago}
                       </span>
                     </td>
 
@@ -442,11 +473,11 @@ function Arqueros({ onDataChange }) {
                         </button>
 
                         <button
-                          className="btn-delete"
-                          title="Eliminar"
-                          onClick={() => eliminarArquero(arquero)}
+                          className="btn-estado"
+                          title={arquero.estado === 'activo' ? 'Desactivar' : 'Reactivar'}
+                          onClick={() => cambiarEstado(arquero)}
                         >
-                          🗑
+                          {arquero.estado === 'activo' ? 'Desactivar' : 'Reactivar'}
                         </button>
 
                       </div>
@@ -695,13 +726,11 @@ function Arqueros({ onDataChange }) {
                       value={formulario.estado_pago}
                       onChange={manejarCambio}
                     >
-                      <option value="pendiente">
-                        Pendiente
-                      </option>
-
-                      <option value="pagado">
-                        Pagado
-                      </option>
+                      {Object.entries(ESTADOS_PAGO).map(([valor, etiqueta]) => (
+                        <option key={valor} value={valor}>
+                          {etiqueta}
+                        </option>
+                      ))}
                     </select>
                   </div>
 

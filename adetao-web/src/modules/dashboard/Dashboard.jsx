@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import Sidebar from '../../modules/Sidebar/Sidebar'
 import Topbar from '../../modules/Topbar/Topbar'
 import Inventario from '../../modules/inventario/Inventario'
-import Arqueros from '../../modules/Arqueros/Arqueros'
+import Arqueros, { ESTADOS_PAGO } from '../../modules/Arqueros/Arqueros'
 import Clubes from '../../modules/clubes/Clubes'
 
 import './Dashboard.css'
@@ -268,7 +268,7 @@ function Inicio({ arqueros, profile, totalClubes, esAdmin, onRegistrarClub }) {
                       arquero.estado_pago
                     }`}
                   >
-                    {arquero.estado_pago || 'Sin estado'}
+                    {ESTADOS_PAGO[arquero.estado_pago] || 'Sin estado'}
                   </span>
                 </div>
               ))}
