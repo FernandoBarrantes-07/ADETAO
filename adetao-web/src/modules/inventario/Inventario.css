@@ -1,4 +1,4 @@
-/* #root (index.css) centra el texto y usa color-scheme light dark. */
+/* :root usa color-scheme light dark. El módulo fuerza claro y alinea el texto a la izquierda. */
 .inventario {
   color-scheme: light;
 }

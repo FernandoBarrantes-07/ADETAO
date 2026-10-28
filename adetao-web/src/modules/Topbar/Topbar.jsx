@@ -15,7 +15,7 @@ function Topbar({ profile }) {
 
       <div className="topbar-title">
         <h1>Sistema de Administración</h1>
-        <p>Asociación de Arqueros de Alajuela</p>
+        <p>Asociación Deportiva de Tiro con Arco de Occidente</p>
       </div>
 
       <div className="topbar-user">
