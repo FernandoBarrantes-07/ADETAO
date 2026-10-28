@@ -175,6 +175,26 @@ function Sidebar({
           </div>
         )}
 
+        {role === 'usuario' && (
+          <div className="sidebar-section">
+
+            <span className="sidebar-section-title">
+              MI EQUIPO
+            </span>
+
+            <button
+              className={`sidebar-item ${
+                activeMenu === 'mis_prestamos' ? 'active' : ''
+              }`}
+              onClick={() => seleccionarMenu('mis_prestamos')}
+            >
+              <span className="sidebar-icon">▣</span>
+              <span>Mis préstamos</span>
+            </button>
+
+          </div>
+        )}
+
       </div>
 
       <div className="sidebar-footer">

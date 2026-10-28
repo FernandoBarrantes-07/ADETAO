@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import Sidebar from '../../modules/Sidebar/Sidebar'
 import Topbar from '../../modules/Topbar/Topbar'
 import Inventario from '../../modules/inventario/Inventario'
+import MisPrestamos from '../../modules/inventario/MisPrestamos'
 import Arqueros, { ESTADOS_PAGO } from '../../modules/Arqueros/Arqueros'
 import Clubes from '../../modules/clubes/Clubes'
 
@@ -35,7 +36,7 @@ function Dashboard({ session }) {
     const { data: perfilData, error: perfilError } =
       await supabase
         .from('perfiles')
-        .select('id, nombre, correo, rol')
+        .select('id, nombre, correo, rol, arquero_id')
         .eq('id', session.user.id)
         .single()
 
@@ -101,6 +102,10 @@ function Dashboard({ session }) {
   )
 }
 
+    if (activeMenu === 'mis_prestamos') {
+      return <MisPrestamos profile={profile} />
+    }
+
     return (
       <div className="module-placeholder">
         <h2>
@@ -154,6 +159,7 @@ function obtenerTituloModulo(menu) {
     pagos: 'Pagos',
     reportes: 'Reportes',
     usuarios: 'Usuarios',
+    mis_prestamos: 'Mis préstamos',
   }
 
   return titulos[menu] || 'Módulo'

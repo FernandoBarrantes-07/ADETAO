@@ -14,6 +14,7 @@ function HistorialTabla({
   mostrarArquero = true,
   mostrarArticulo = true,
   mostrarObservaciones = false,
+  mostrarRegistradoPor = true,
   onDevolver,
 }) {
   return (
@@ -27,7 +28,7 @@ function HistorialTabla({
             <th>Prestado</th>
             <th>Devuelto</th>
             <th>Estado</th>
-            <th>Registrado por</th>
+            {mostrarRegistradoPor && <th>Registrado por</th>}
             {mostrarObservaciones && <th>Observaciones</th>}
             {onDevolver && <th className="inv-col-acciones">Acciones</th>}
           </tr>
@@ -60,7 +61,9 @@ function HistorialTabla({
               <td data-label="Estado">
                 <span className={`inv-badge asig-${f.estado}`}>{etiquetaAsignacion(f.estado)}</span>
               </td>
-              <td data-label="Registrado por"><RegistradoPor fila={f} /></td>
+              {mostrarRegistradoPor && (
+                <td data-label="Registrado por"><RegistradoPor fila={f} /></td>
+              )}
               {mostrarObservaciones && (
                 <td data-label="Observaciones" className="inv-observaciones">
                   {f.observaciones || '—'}
