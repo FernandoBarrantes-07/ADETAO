@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { ESTADOS_PAGO } from './estadosPago'
 
 import './Arqueros.css'
-
-export const ESTADOS_PAGO = {
-  al_dia: 'Al día',
-  pendiente: 'Pendiente',
-  vencido: 'Vencido',
-}
 
 function Arqueros({ onDataChange, profile }) {
   const esAdmin = profile?.rol === 'administrador'
@@ -44,73 +39,78 @@ function Arqueros({ onDataChange, profile }) {
   }
 
   const [formulario, setFormulario] = useState(formularioInicial)
+  const [version, setVersion] = useState(0)
+
+  const recargar = () => setVersion((v) => v + 1)
 
   useEffect(() => {
-    cargarDatos()
-  }, [])
+    let vigente = true
 
-  const cargarDatos = async () => {
-    setLoading(true)
-    setError('')
+    async function cargar() {
+      setLoading(true)
+      setError('')
 
-    const [
-      { data: arquerosData, error: arquerosError },
-      { data: clubesData, error: clubesError },
-      { data: tiposArcoData, error: tiposArcoError },
-    ] = await Promise.all([
-      supabase
-        .from('arqueros')
-        .select(`
-          id,
-          nombre,
-          identificacion,
-          fecha_nacimiento,
-          telefono,
-          correo,
-          mano_dominante,
-          tipo_arco_id,
-          categoria,
-          afiliacion,
-          club_id,
-          estado_pago,
-          estado,
-          observaciones,
-          created_at,
-          tipos_arco(nombre),
-          clubes(nombre)
-        `)
-        .order('nombre'),
+      const [
+        { data: arquerosData, error: arquerosError },
+        { data: clubesData, error: clubesError },
+        { data: tiposArcoData, error: tiposArcoError },
+      ] = await Promise.all([
+        supabase
+          .from('arqueros')
+          .select(`
+            id,
+            nombre,
+            identificacion,
+            fecha_nacimiento,
+            telefono,
+            correo,
+            mano_dominante,
+            tipo_arco_id,
+            categoria,
+            afiliacion,
+            club_id,
+            estado_pago,
+            estado,
+            observaciones,
+            created_at,
+            tipos_arco(nombre),
+            clubes(nombre)
+          `)
+          .order('nombre'),
 
-      supabase
-        .from('clubes')
-        .select('id, nombre, estado')
-        .order('nombre'),
+        supabase
+          .from('clubes')
+          .select('id, nombre, estado')
+          .order('nombre'),
 
-      supabase
-        .from('tipos_arco')
-        .select('id, nombre')
-        .order('nombre'),
-    ])
+        supabase
+          .from('tipos_arco')
+          .select('id, nombre')
+          .order('nombre'),
+      ])
 
-    if (arquerosError) {
-      setError('No se pudieron cargar los arqueros.')
-      console.error(arquerosError)
+      if (!vigente) return
+
+      if (arquerosError) {
+        setError('No se pudieron cargar los arqueros.')
+        console.error(arquerosError)
+      }
+
+      if (clubesError) console.error(clubesError)
+      if (tiposArcoError) console.error(tiposArcoError)
+
+      setArqueros(arquerosData || [])
+      setClubes(clubesData || [])
+      setTiposArco(tiposArcoData || [])
+      setLoading(false)
     }
 
-    if (clubesError) {
-      console.error(clubesError)
+    cargar()
+
+    return () => {
+      vigente = false
     }
-
-    if (tiposArcoError) {
-      console.error(tiposArcoError)
-    }
-
-    setArqueros(arquerosData || [])
-    setClubes(clubesData || [])
-    setTiposArco(tiposArcoData || [])
-
-    setLoading(false)
-  }
+  }, [version])
 
   const abrirNuevo = () => {
     setArqueroEditando(null)
@@ -238,7 +238,7 @@ function Arqueros({ onDataChange, profile }) {
         : 'Arquero registrado correctamente.'
     )
 
-    await cargarDatos()
+    recargar()
 
     if (onDataChange) {
       onDataChange()
@@ -279,7 +279,7 @@ function Arqueros({ onDataChange, profile }) {
         : `${arquero.nombre} se desactivó.`
     )
 
-    await cargarDatos()
+    recargar()
 
     if (onDataChange) {
       onDataChange()

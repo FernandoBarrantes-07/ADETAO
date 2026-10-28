@@ -5,7 +5,8 @@ import Sidebar from '../../modules/Sidebar/Sidebar'
 import Topbar from '../../modules/Topbar/Topbar'
 import Inventario from '../../modules/inventario/Inventario'
 import MisPrestamos from '../../modules/inventario/MisPrestamos'
-import Arqueros, { ESTADOS_PAGO } from '../../modules/Arqueros/Arqueros'
+import Arqueros from '../../modules/Arqueros/Arqueros'
+import { ESTADOS_PAGO } from '../../modules/Arqueros/estadosPago'
 import Clubes from '../../modules/clubes/Clubes'
 
 import './Dashboard.css'
@@ -18,69 +19,75 @@ function Dashboard({ session }) {
   const [totalInventario, setTotalInventario] = useState(0)
   const [activeMenu, setActiveMenu] = useState('inicio')
   const [loading, setLoading] = useState(true)
+  const [version, setVersion] = useState(0)
 
-  const actualizarTotales = async () => {
-    const [clubesRes, arquerosRes, inventarioRes] = await Promise.all([
-      supabase
-        .from('clubes')
-        .select('id', { count: 'exact', head: true })
-        .eq('estado', 'activo'),
-      supabase
-        .from('arqueros')
-        .select('id', { count: 'exact', head: true })
-        .eq('estado', 'activo'),
-      supabase
-        .from('inventario')
-        .select('id', { count: 'exact', head: true })
-        .neq('estado', 'perdido'),
-    ])
-
-    setTotalClubes(clubesRes.error ? 0 : clubesRes.count ?? 0)
-    setTotalArqueros(arquerosRes.error ? 0 : arquerosRes.count ?? 0)
-    setTotalInventario(inventarioRes.error ? 0 : inventarioRes.count ?? 0)
-  }
+  const recargar = () => setVersion((v) => v + 1)
 
   const abrirMenu = (menu) => {
     setActiveMenu(menu)
-    if (menu === 'inicio') actualizarTotales()
+    if (menu === 'inicio') recargar()
   }
 
   useEffect(() => {
-    cargarDatos()
-  }, [session])
+    let vigente = true
 
-  const cargarDatos = async () => {
-    setLoading(true)
+    async function cargar() {
+      if (version === 0) setLoading(true)
 
-    const { data: perfilData, error: perfilError } =
-      await supabase
-        .from('perfiles')
-        .select('id, nombre, correo, rol, arquero_id')
-        .eq('id', session.user.id)
-        .single()
+      const { data: perfilData, error: perfilError } =
+        await supabase
+          .from('perfiles')
+          .select('id, nombre, correo, rol, arquero_id')
+          .eq('id', session.user.id)
+          .single()
 
-    if (!perfilError) {
-      setProfile(perfilData)
+      if (!vigente) return
+      if (!perfilError) setProfile(perfilData)
+
+      const { data: arquerosData } =
+        await supabase
+          .from('arqueros')
+          .select(`
+            id,
+            nombre,
+            identificacion,
+            estado_pago,
+            tipos_arco(nombre),
+            clubes(nombre)
+          `)
+          .order('nombre')
+
+      if (!vigente) return
+      setArqueros(arquerosData || [])
+
+      const [clubesRes, arquerosRes, inventarioRes] = await Promise.all([
+        supabase
+          .from('clubes')
+          .select('id', { count: 'exact', head: true })
+          .eq('estado', 'activo'),
+        supabase
+          .from('arqueros')
+          .select('id', { count: 'exact', head: true })
+          .eq('estado', 'activo'),
+        supabase
+          .from('inventario')
+          .select('id', { count: 'exact', head: true })
+          .neq('estado', 'perdido'),
+      ])
+
+      if (!vigente) return
+      setTotalClubes(clubesRes.error ? 0 : clubesRes.count ?? 0)
+      setTotalArqueros(arquerosRes.error ? 0 : arquerosRes.count ?? 0)
+      setTotalInventario(inventarioRes.error ? 0 : inventarioRes.count ?? 0)
+      setLoading(false)
     }
 
-    const { data: arquerosData } =
-      await supabase
-        .from('arqueros')
-        .select(`
-          id,
-          nombre,
-          identificacion,
-          estado_pago,
-          tipos_arco(nombre),
-          clubes(nombre)
-        `)
-        .order('nombre')
+    cargar()
 
-    setArqueros(arquerosData || [])
-    await actualizarTotales()
-
-    setLoading(false)
-  }
+    return () => {
+      vigente = false
+    }
+  }, [session, version])
 
   const cerrarSesion = async () => {
     await supabase.auth.signOut()
@@ -111,7 +118,7 @@ function Dashboard({ session }) {
       return (
         <Clubes
           profile={profile}
-          onCambio={actualizarTotales}
+          onCambio={recargar}
         />
       )
     }
@@ -119,7 +126,7 @@ function Dashboard({ session }) {
   return (
     <Arqueros
       profile={profile}
-      onDataChange={cargarDatos}
+      onDataChange={recargar}
     />
   )
 }
