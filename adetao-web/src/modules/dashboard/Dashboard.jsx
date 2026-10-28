@@ -14,16 +14,35 @@ function Dashboard({ session }) {
   const [profile, setProfile] = useState(null)
   const [arqueros, setArqueros] = useState([])
   const [totalClubes, setTotalClubes] = useState(0)
+  const [totalArqueros, setTotalArqueros] = useState(0)
+  const [totalInventario, setTotalInventario] = useState(0)
   const [activeMenu, setActiveMenu] = useState('inicio')
   const [loading, setLoading] = useState(true)
 
-  const actualizarTotalClubes = async () => {
-    const { count, error } = await supabase
-      .from('clubes')
-      .select('id', { count: 'exact', head: true })
-      .eq('estado', 'activo')
+  const actualizarTotales = async () => {
+    const [clubesRes, arquerosRes, inventarioRes] = await Promise.all([
+      supabase
+        .from('clubes')
+        .select('id', { count: 'exact', head: true })
+        .eq('estado', 'activo'),
+      supabase
+        .from('arqueros')
+        .select('id', { count: 'exact', head: true })
+        .eq('estado', 'activo'),
+      supabase
+        .from('inventario')
+        .select('id', { count: 'exact', head: true })
+        .neq('estado', 'perdido'),
+    ])
 
-    setTotalClubes(error ? 0 : count ?? 0)
+    setTotalClubes(clubesRes.error ? 0 : clubesRes.count ?? 0)
+    setTotalArqueros(arquerosRes.error ? 0 : arquerosRes.count ?? 0)
+    setTotalInventario(inventarioRes.error ? 0 : inventarioRes.count ?? 0)
+  }
+
+  const abrirMenu = (menu) => {
+    setActiveMenu(menu)
+    if (menu === 'inicio') actualizarTotales()
   }
 
   useEffect(() => {
@@ -58,7 +77,7 @@ function Dashboard({ session }) {
         .order('nombre')
 
     setArqueros(arquerosData || [])
-    await actualizarTotalClubes()
+    await actualizarTotales()
 
     setLoading(false)
   }
@@ -74,9 +93,12 @@ function Dashboard({ session }) {
           arqueros={arqueros}
           profile={profile}
           totalClubes={totalClubes}
+          totalArqueros={totalArqueros}
+          totalInventario={totalInventario}
           esAdmin={profile?.rol === 'administrador'}
+          esStaff={profile?.rol === 'administrador' || profile?.rol === 'profesor'}
           esUsuario={profile?.rol === 'usuario'}
-          onRegistrarClub={() => setActiveMenu('clubes')}
+          onIr={abrirMenu}
         />
       )
     }
@@ -89,7 +111,7 @@ function Dashboard({ session }) {
       return (
         <Clubes
           profile={profile}
-          onCambio={actualizarTotalClubes}
+          onCambio={actualizarTotales}
         />
       )
     }
@@ -132,7 +154,7 @@ function Dashboard({ session }) {
 
       <Sidebar
         activeMenu={activeMenu}
-        setActiveMenu={setActiveMenu}
+        setActiveMenu={abrirMenu}
         role={profile?.rol}
         onLogout={cerrarSesion}
       />
@@ -165,7 +187,17 @@ function obtenerTituloModulo(menu) {
   return titulos[menu] || 'Módulo'
 }
 
-function Inicio({ arqueros, profile, totalClubes, esAdmin, esUsuario, onRegistrarClub }) {
+function Inicio({
+  arqueros,
+  profile,
+  totalClubes,
+  totalArqueros,
+  totalInventario,
+  esAdmin,
+  esStaff,
+  esUsuario,
+  onIr,
+}) {
   return (
     <div>
 
@@ -191,7 +223,7 @@ function Inicio({ arqueros, profile, totalClubes, esAdmin, esUsuario, onRegistra
 
             <div>
               <span>Arqueros</span>
-              <strong>{arqueros.length}</strong>
+              <strong>{totalArqueros}</strong>
             </div>
           </div>
         )}
@@ -207,16 +239,18 @@ function Inicio({ arqueros, profile, totalClubes, esAdmin, esUsuario, onRegistra
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">
-            ▣
-          </div>
+        {esStaff && (
+          <div className="stat-card">
+            <div className="stat-icon">
+              ▣
+            </div>
 
-          <div>
-            <span>Inventario</span>
-            <strong>0</strong>
+            <div>
+              <span>Inventario</span>
+              <strong>{totalInventario}</strong>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="stat-card">
           <div className="stat-icon">
@@ -289,6 +323,7 @@ function Inicio({ arqueros, profile, totalClubes, esAdmin, esUsuario, onRegistra
 
         </div>
 
+        {esAdmin && (
         <div className="dashboard-card">
 
           <div className="card-header">
@@ -300,23 +335,22 @@ function Inicio({ arqueros, profile, totalClubes, esAdmin, esUsuario, onRegistra
 
           <div className="quick-actions">
 
-            <button>
+            <button onClick={() => onIr('arqueros')}>
               + Registrar arquero
             </button>
 
-            {esAdmin && (
-              <button onClick={onRegistrarClub}>
-                + Registrar club
-              </button>
-            )}
+            <button onClick={() => onIr('clubes')}>
+              + Registrar club
+            </button>
 
-            <button>
+            <button onClick={() => onIr('inventario')}>
               + Agregar inventario
             </button>
 
           </div>
 
         </div>
+        )}
 
       </div>
       )}
