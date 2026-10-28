@@ -74,11 +74,11 @@ Después de corregir DEV-13, OBS-02 y OBS-04 se repitieron los casos afectados.
 | PRE — Préstamos | 8 | 8 | 0 | 0 | 0 | 0 |
 | DEV — Devoluciones | 13 | 13 | 0 | 0 | 0 | 0 |
 | HIS — Historiales | 7 | 6 | 1 | 0 | 0 | 0 |
-| PER — Permisos por rol | 6 | 4 | 0 | 0 | 1 | 1 |
+| PER — Permisos por rol | 6 | 5 | 0 | 0 | 0 | 1 |
 | UI — Interfaz | 2 | 2 | 0 | 0 | 0 | 0 |
-| **Total** | **58** | **55** | **1** | **0** | **1** | **1** |
+| **Total** | **58** | **56** | **1** | **0** | **0** | **1** |
 
-Estado después de la [re-ejecución](#re-ejecución-del-10-oct-2026). En la primera ejecución DEV-13 fallaba y UI-01 pasaba con observaciones (53 pasan, 2 con observaciones, 1 falla); los dos se corrigieron y pasan. Observaciones fuera de los casos: OBS-01 a OBS-04, al final (OBS-02 y OBS-04 corregidas).
+Estado después de la [re-ejecución](#re-ejecución-del-10-oct-2026) y de PER-05 el 28 oct 2026. En la primera ejecución DEV-13 fallaba y UI-01 pasaba con observaciones (53 pasan, 2 con observaciones, 1 falla); los dos se corrigieron y pasan. PER-05 dejó de estar bloqueado el 28 oct 2026. Observaciones fuera de los casos: OBS-01 a OBS-04, al final (OBS-02 y OBS-04 corregidas).
 
 ---
 
@@ -689,7 +689,7 @@ Estado después de la [re-ejecución](#re-ejecución-del-10-oct-2026). En la pri
 - **Pasos:** revisar el menú lateral.
 - **Datos:** —
 - **Resultado esperado:** no aparece Inventario.
-- **Resultado obtenido:** menú con "Inicio" y "Arqueros" solamente. En el inicio aparecen la tarjeta "Inventario 0" y la acción "+ Agregar inventario" (ver OBS-03).
+- **Resultado obtenido:** menú con "Inicio" y "Arqueros" solamente. En el inicio aparecen la tarjeta "Inventario 0" y la acción "+ Agregar inventario" (ver OBS-03). Revisión del 28 oct 2026: el usuario ya no ve la tarjeta Inventario ni acciones rápidas; el menú agrega "Mis préstamos".
 - **Estado:** Pasa.
 - **Cobertura en BD:** "Usuario no puede crear asignaciones", "Usuario no puede modificar inventario", "Usuario no puede insertar tipos de arco".
 
@@ -697,11 +697,11 @@ Estado después de la [re-ejecución](#re-ejecución-del-10-oct-2026). En la pri
 - **Rol:** usuario.
 - **Objetivo:** que el arquero vea lo que tiene prestado.
 - **Precondiciones:** usuario vinculado a María.
-- **Pasos:** —
-- **Datos:** —
+- **Pasos:** menú "Mis préstamos".
+- **Datos:** préstamos del seed de María Rodríguez Solís.
 - **Resultado esperado:** una vista con sus préstamos actuales y anteriores, sin acciones.
-- **Resultado obtenido:** no hay entrada en el menú para el rol usuario.
-- **Estado:** Bloqueado. Falta la vista y su entrada en `Sidebar.jsx` (checklist, sección 7; cambio en código compartido, pendiente de acordar con Fernando). La BD ya filtra los datos por arquero.
+- **Resultado obtenido:** el 28 oct 2026, con `usuario@adetao.test`, el menú "MI EQUIPO / Mis préstamos" abre la vista. "Tiene ahora" muestra 7 unidades en 2 préstamos (ARC-001 y PZ-FLE-28, Activo). "Préstamos anteriores" muestra 1 préstamo cerrado (CAR-001, Devuelto). No hay botones Devolver ni Cerrar, ni columna "Registrado por".
+- **Estado:** Pasa. La entrada de `Sidebar.jsx` es código compartido, pendiente de acordar con Fernando. La BD ya filtra los datos por arquero.
 - **Cobertura en BD:** "Usuario ve solo sus asignaciones", "Usuario ve solo sus asignaciones de piezas", "Usuario ve solo los artículos que tiene o tuvo asignados", "Usuario ve solo su historial", "El historial del usuario no incluye a otros arqueros", "Usuario sin arquero no ve historial".
 
 ### PER-06 — Anónimo

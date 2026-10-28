@@ -20,6 +20,8 @@ Alcance: objetivo 4 del oficio ADETAO-00027-2026 y Plan de Trabajo 3.4. Registra
 
 Última verificación: 10 oct 2026, 2032c03, test db: Files=1, Tests=109, Result: PASS; lint: 0 errores (2 warnings en Dashboard.jsx:17); build: correcto. `db reset --local`: 9 migraciones y seed, correcto.
 
+Última verificación: 28 oct 2026, código hasta `e08a315`, solo local. `npx supabase db reset --local`: 11 migraciones y seed. `npx supabase test db --local`: Files=3, Tests=158, Result: PASS (22 de arqueros, 27 de clubes, 109 de inventario). `npm run lint`: 0 errores y 0 warnings. `npm run build`: correcto, con aviso de chunk mayor a 500 kB. Humo en el navegador con los tres usuarios del seed: el administrador ve etiquetas "Pendiente", desactiva y reactiva, "Mostrar inactivos", Inventario 8 y las tres acciones rápidas; el profesor ve Arqueros en solo lectura, Inventario 8 y sin acciones rápidas; el usuario solo ve a María, sin lista de arqueros ni acciones en Inicio, y "Mis préstamos" con 2 activos (7 unidades) y 1 cerrado, sin botones. Login centrado y sin desborde a 390 px; `#root` a ancho de la ventana. Otro `db reset --local` dejó el seed. Los archivos compartidos de esta verificación quedan **pendientes de acordar con Fernando**. Nada se aplicó en DEV ni en producción.
+
 ---
 
 ## Resumen del estado
@@ -32,12 +34,12 @@ Alcance: objetivo 4 del oficio ADETAO-00027-2026 y Plan de Trabajo 3.4. Registra
 | 4. Piezas | 4 | 0 | 0 | 0 |
 | 5. Asignaciones | 9 | 0 | 2 | 0 |
 | 6. Trazabilidad | 3 | 1 | 0 | 0 |
-| 7. Permisos en la UI | 3 | 1 | 0 | 0 |
+| 7. Permisos en la UI | 4 | 0 | 0 | 0 |
 | 8. Calidad | 8 | 0 | 0 | 0 |
 | 9. Documentación | 4 | 0 | 0 | 0 |
-| 10. Dependencias con Fernando | 0 | 4 | 1 | 0 |
+| 10. Dependencias con Fernando | 0 | 5 | 0 | 0 |
 
-La BD del módulo está terminada y probada en local. La UI de tipos de arco, inventario y piezas existe en `src/modules/inventario/` y se abre desde el menú "Inventario" (secciones 2 a 4, 10 oct 2026). Préstamos, devoluciones e historiales están en la pestaña "Préstamos" (secciones 5 y 6, 10 oct 2026). Falta la vista del usuario ("Mis préstamos", sección 7).
+La BD del módulo está terminada y probada en local. La UI de tipos de arco, inventario y piezas existe en `src/modules/inventario/` y se abre desde el menú "Inventario" (secciones 2 a 4, 10 oct 2026). Préstamos, devoluciones e historiales están en la pestaña "Préstamos" (secciones 5 y 6, 10 oct 2026). El rol usuario ve "Mis préstamos" desde el 28 oct 2026 (sección 7).
 
 ---
 
@@ -172,7 +174,7 @@ UI en la pestaña "Préstamos" de `Inventario.jsx` (solo administrador y profeso
 - [x] Pasar de dañado a devuelto tras reparación — evidencia: en un préstamo dañado el botón es "Cerrar" y ofrece "Reparado: vuelve al inventario" o "Dar de baja como perdido"; se conserva la `fecha_devolucion` de cuando se entregó dañado y la fecha de la reparación queda en la nota. Humo: "Dañado -> reparado restaura stock" (`10/10`), "Reparado conserva la fecha de entrega y suma la nota".
 - [x] `registrado_por` se llena automáticamente — evidencia: default `auth.uid()` y `asignacion_validar_alta()`; prueba "registrado_por se fuerza a auth.uid() aunque se envíe otro valor". La UI nunca lo envía.
 - [x] Devolución sobre una lista desactualizada — evidencia: `registrarDevolucion()` actualiza solo si el préstamo sigue en el estado que se mostró (`.eq('estado', …)`); si otra persona ya lo cerró, avisa `Este préstamo ya se registró como "…". Actualice la lista.` en lugar de duplicar la nota, con un botón "Actualizar" que cierra el modal y recarga la lista (OBS-02, sección 8). Humo: "Devolver dos veces el mismo préstamo (lista desactualizada)". (Ítem nuevo.)
-- [x] Permisos: solo administrador y profesor prestan y devuelven — evidencia: la pestaña "Préstamos" y el botón "Historial" solo se renderizan con `esStaff`; RLS de respaldo. Humo: "Usuario no puede prestar" y "Usuario no puede registrar devoluciones" → "No tiene permisos para realizar esta acción."; "El préstamo del usuario sigue activo". La vista "Mis préstamos" del rol usuario va en otro paso (sección 7). (Ítem nuevo.)
+- [x] Permisos: solo administrador y profesor prestan y devuelven — evidencia: la pestaña "Préstamos" y el botón "Historial" solo se renderizan con `esStaff`; RLS de respaldo. Humo: "Usuario no puede prestar" y "Usuario no puede registrar devoluciones" → "No tiene permisos para realizar esta acción."; "El préstamo del usuario sigue activo". La vista "Mis préstamos" del rol usuario está en la sección 7 (28 oct 2026). (Ítem nuevo.)
 - [ ] Devolución parcial (por ejemplo, devolver 4 de 6 flechas) — no es posible: la BD no permite cambiar la `cantidad` de una asignación y la devolución cierra el préstamo completo. Si ADETAO lo necesita, hay que cambiar el modelo (por ejemplo, dividir la asignación). (Ítem nuevo.)
 - [ ] Definir con ADETAO si los préstamos tienen fecha límite de devolución (si sí, agregar `fecha_devolucion_prevista` y estado de préstamo vencido).
 
@@ -189,14 +191,14 @@ El RLS de las 5 tablas está hecho y probado por rol (sección 1). La UI aplica 
 
 - [x] Administrador: acceso completo al módulo — evidencia: pestañas Artículos, Piezas, Préstamos y Tipos de arco, con crear, editar, historial, cambio de estado, préstamos, devoluciones y desactivar tipos de arco. Caso PER-01: Pasa. RLS: "Admin inserta tipos de arco", "Admin ve todas las asignaciones".
 - [x] Profesor: gestiona inventario, piezas y asignaciones; no edita el catálogo de tipos de arco — evidencia: mismas pestañas que el admin; en `TiposArco.jsx` los botones "+ Nuevo tipo", "Editar" y "Desactivar" y la columna Acciones solo se muestran con `esAdmin`, y el profesor ve "Catálogo de solo lectura. Solo el administrador puede modificarlo." Casos PER-02 y PER-03: Pasa. RLS: "Profesor no puede insertar tipos de arco", "Profesor inserta inventario", "Profesor asigna con stock suficiente".
-- [~] Usuario: ve solo sus asignaciones — RLS listo y probado ("Usuario ve solo sus asignaciones", "Usuario ve solo su historial", entre otras). El usuario no ve el menú Inventario (PER-04: Pasa). Falta la vista "Mis préstamos" y su entrada en `Sidebar.jsx` para el rol `usuario` (cambio en código compartido, **pendiente de acordar con Fernando**); por eso PER-05 está Bloqueado.
+- [x] Usuario: ve solo sus asignaciones — RLS listo y probado ("Usuario ve solo sus asignaciones", "Usuario ve solo su historial", entre otras). El usuario no ve el menú Inventario (PER-04: Pasa). La vista "Mis préstamos" está en `MisPrestamos.jsx` y la entrada en `Sidebar.jsx` para el rol `usuario` (**pendiente de acordar con Fernando**). Humo del 28 oct 2026: María ve 2 préstamos activos (7 unidades) y 1 cerrado, sin botones de devolución ni columna "Registrado por". PER-05: Pasa.
 - [x] Botones y acciones ocultos según el rol (además de RLS) — evidencia: en `Inventario.jsx`, la pestaña Préstamos solo se renderiza con `esStaff`; en `ArticulosTabla.jsx`, `puedeEditar={esStaff}` oculta "+ Nuevo artículo/pieza", "Historial", "Editar" y el selector de estado (sin permiso se muestra solo la etiqueta); en `TiposArco.jsx`, la escritura depende de `esAdmin`. Casos PER-02 a PER-04: Pasa.
 
 ## 8. Calidad
 
 Casos funcionales ejecutados el 10 oct 2026 en el navegador contra la BD local (`127.0.0.1:54321`, recién reiniciada, usuarios del seed), rama `inventario`, commit `bad46eb`: [`docs/inventario/casos-de-prueba.md`](inventario/casos-de-prueba.md). Resultado de esa ejecución: 58 casos, 53 pasan, 2 pasan con observaciones (HIS-07, UI-01), 1 falla (DEV-13), 1 bloqueado (PER-05) y 1 no aplica (PER-06). Ese paso no modificó código ni migraciones.
 
-Después se corrigieron DEV-13, OBS-02 y OBS-04, y se volvieron a ejecutar DEV-13, DEV-10 y UI-01 el mismo día ([re-ejecución](inventario/casos-de-prueba.md#re-ejecución-del-10-oct-2026)). Resultado actual: 55 pasan, 1 pasa con observaciones (HIS-07), 0 fallan, 1 bloqueado (PER-05) y 1 no aplica (PER-06).
+Después se corrigieron DEV-13, OBS-02 y OBS-04, y se volvieron a ejecutar DEV-13, DEV-10 y UI-01 el mismo día ([re-ejecución](inventario/casos-de-prueba.md#re-ejecución-del-10-oct-2026)). El 28 oct 2026 PER-05 pasó en el navegador. Resultado actual: 56 pasan, 1 pasa con observaciones (HIS-07), 0 fallan, 0 bloqueados y 1 no aplica (PER-06).
 
 - [x] Validaciones en cliente (cantidades positivas, campos obligatorios) — evidencia: `ArticuloForm.jsx` (nombre, tipo, tipo de arco si es arco, cantidad entera `>= 0` y no menor que lo asignado), `TiposArco.jsx` (nombre obligatorio y duplicado sin distinguir mayúsculas), `PrestamoForm.jsx` (arquero, artículo, cantidad entera `> 0` y no mayor que lo disponible), `DevolucionForm.jsx` (opción, fecha no anterior al préstamo ni futura, observaciones obligatorias para dañado y perdido). Casos TA-02, TA-03, ART-02, ART-03, ART-06, PZ-03, PRE-03, PRE-04, DEV-02, DEV-04, DEV-07, DEV-08 y DEV-09: Pasa. La BD valida lo mismo como respaldo.
 - [x] Mensajes de error en español — evidencia: `errores.js` (`traducirError`) traduce `23505`, `23514`, `23503` y `42501`, y deja pasar los `P0001` de los triggers, que ya están en español; "Failed to fetch" da "No se pudo conectar con el servidor. Revise su conexión." Casos con el mensaje copiado de la pantalla: ART-04 y PZ-02 (UNIQUE), PRE-05 (`Stock insuficiente…`), PRE-01/DEV-11 (arquero inactivo), ART-08 (`Primero registre la devolución`), DEV-10 (lista desactualizada), PER-02 a PER-04 (permisos). La tabla de mensajes y qué hacer ante cada uno está en el [manual de usuario](inventario/manual-usuario.md#11-si-aparece-este-mensaje).
@@ -209,7 +211,7 @@ Después se corrigieron DEV-13, OBS-02 y OBS-04, y se volvieron a ejecutar DEV-1
   - [x] Marcar perdido y dañado — DEV-02 a DEV-06; pgTAP "Transición activo -> perdido", "Transición activo -> dañado", "Transición dañado -> perdido".
   - [x] Intentar una transición inválida — la UI solo ofrece las transiciones válidas (DEV-01 a DEV-05) y DEV-10 cubre el préstamo ya cerrado por otra persona; pgTAP "Transición dañado -> activo se rechaza", "Transición devuelto -> activo se rechaza".
   - [x] Intentar modificar cantidad o arquero de una asignación — la UI no permite editar un préstamo; DEV-12 aplica el procedimiento provisional que reemplaza el cambio de cantidad; pgTAP "Modificar la cantidad de una asignación se rechaza", "Cambiar el arquero de una asignación se rechaza".
-  - [~] Acceso por cada rol — PER-01 a PER-04 y PER-06 (No aplica, cubierto en BD) para admin, profesor, usuario y anónimo. PER-05 ("Mis préstamos" del usuario) está bloqueado porque la vista no existe (sección 7). pgTAP cubre los cinco perfiles.
+  - [x] Acceso por cada rol — PER-01 a PER-04 y PER-06 (No aplica, cubierto en BD) para admin, profesor, usuario y anónimo. PER-05 ("Mis préstamos") pasó el 28 oct 2026 (sección 7). pgTAP cubre los cinco perfiles.
 - [x] Linter sin errores ni warnings en los archivos del módulo — evidencia: 10 oct 2026, `npm run lint` (oxlint): 0 errores; los 2 warnings son de `src/modules/dashboard/Dashboard.jsx:17` (código compartido), ninguno en `src/modules/inventario/`. `npm run build`: correcto. `npx supabase test db --local`: `Files=1, Tests=109, Result: PASS`.
 - [x] Corregir DEV-13: devolver en el mismo minuto en que se registró el préstamo daba "La fecha de devolución no puede ser anterior a la fecha del préstamo." porque `fecha_asignacion` tiene microsegundos y JavaScript la trunca a milisegundos — evidencia: `fechaDevolucionFinal()` en `constantes.js` sube `fecha_asignacion` al segundo siguiente (cubre también `.000` con microsegundos) y `DevolucionForm.jsx` la usa en lugar del `Math.max` anterior. Prueba de humo temporal del 10 oct 2026 (Vite SSR con `inventarioService.js` y `constantes.js` reales, BD local): **16 ok, 0 fallos**; incluye un control donde el cálculo anterior sigue rechazándose, y devoluciones en el mismo minuto en buen estado, dañado → reparado y perdido. El script se borró y la BD local se reinició. Caso DEV-13 en el navegador: Pasa. (Ítem nuevo.)
 - [x] Botón "Actualizar" en el aviso de lista desactualizada (OBS-02) — evidencia: `registrarDevolucion()` marca el error con `listaDesactualizada`; `DevolucionForm.jsx` muestra "Actualizar" junto al mensaje y `Prestamos.jsx` cierra el modal y recarga "Préstamos activos" e "Historial por arquero" (`version`). Caso DEV-10: Pasa (7 → 6 pendientes sin cambiar de vista). (Ítem nuevo.)
@@ -231,9 +233,9 @@ Documentos en `docs/inventario/`, escritos el 10 oct 2026.
 
 - [~] Funciones de rol (`rol_actual`, `es_admin`, `es_staff`, `mi_arquero_id`) acordadas — implementadas en `20261009150000_base_roles.sql` (`SECURITY DEFINER`, solo para `authenticated`; un perfil `inactivo` no tiene rol). Falta acordarlas con Fernando.
 - [~] `perfiles.arquero_id` acordado — implementado como `bigint UNIQUE` con FK a `arqueros(id)` `ON DELETE SET NULL` en la misma migración. Falta acordarlo con Fernando y definir quién lo asigna: hoy no hay política UPDATE en `perfiles`, así que solo el seed lo llena.
-- [~] Router y layout para agregar las páginas de inventario — no hay router. Mientras tanto, `Dashboard.jsx` tiene solo un import y una rama en `renderContenido()` (`if (activeMenu === 'inventario') return <Inventario profile={profile} />`); Sidebar y layout no cambiaron. **Pendiente de acordar con Fernando.**
-- [~] Selector de arqueros (depende del módulo de arqueros) — hecho en `SelectorArquero.jsx` con `listarArqueros()`, que lee `id, nombre, identificacion, estado` de `arqueros` directamente (solo lectura). Funciona porque hoy el RLS de `arqueros` es `true` para autenticados; ese RLS es de Fernando y, si cambia, el staff debe seguir pudiendo leer esas columnas. Falta acordarlo.
-- [ ] Indicadores de inventario para el dashboard (objetivo 5) — la tarjeta "Inventario" del inicio muestra `0` fijo.
+- [~] Router y layout para agregar las páginas de inventario — no hay router. `Dashboard.jsx` monta Inventario y, desde el 28 oct 2026, Mis préstamos. `Sidebar.jsx` muestra "Mis préstamos" al rol usuario. **Pendiente de acordar con Fernando.**
+- [~] Selector de arqueros (depende del módulo de arqueros) — hecho en `SelectorArquero.jsx` con `listarArqueros()`, que lee `id, nombre, identificacion, estado` de `arqueros` (solo lectura). Desde `20261028120000_arqueros_rls.sql` el staff sigue pudiendo leer esas columnas; el usuario solo ve su registro. **Pendiente de acordar con Fernando.**
+- [~] Indicadores de inventario para el dashboard (objetivo 5) — la tarjeta "Inventario" del inicio cuenta filas de `inventario` con estado distinto de `perdido`. El administrador y el profesor ven 8 con el seed. El rol usuario no ve esa tarjeta. Pagos sigue en 0. **Pendiente de acordar con Fernando.**
 
 ---
 
@@ -247,10 +249,13 @@ Todo lo de esta lista está fuera de `src/modules/inventario/` y de las migracio
 - `supabase/seed.sql`: inserta 4 arqueros y cambia `perfiles.rol` y `perfiles.arquero_id` de los usuarios de prueba (solo local).
 - `src/modules/dashboard/Dashboard.jsx` (10 oct 2026): un import de `Inventario` y la rama `activeMenu === 'inventario'` en `renderContenido()`. Nada más cambió.
 - `supabase/migrations/20261010120000_inventario_reglas_prestamo.sql`: `asignacion_validar_alta()` lee `arqueros.estado` (solo lectura) para rechazar préstamos a arqueros inactivos. No modifica la tabla `arqueros`, pero si Fernando cambia el significado de `estado`, esta regla cambia con él.
+- `supabase/migrations/20261028120000_arqueros_rls.sql` (28 oct 2026): reemplaza las políticas `USING (true)` de `arqueros`. Staff lee todos; el usuario lee solo `id = mi_arquero_id()`; INSERT y UPDATE solo admin; sin DELETE; `REVOKE ALL` a `anon`. **Pendiente de acordar con Fernando.**
+- `src/modules/Arqueros/Arqueros.jsx` (28 oct 2026): estado de pago con el enum (`al_dia`, `pendiente`, `vencido`), desactivar/reactivar en lugar de borrar, y botones de escritura solo para el administrador. **Pendiente de acordar con Fernando.**
+- `src/modules/Sidebar/Sidebar.jsx` (28 oct 2026): entrada "Mis préstamos" para el rol `usuario`. **Pendiente de acordar con Fernando.**
+- `src/modules/dashboard/Dashboard.jsx` (28 oct 2026): contador de inventario, acciones rápidas solo del administrador, Inicio sin la lista de arqueros para el rol usuario, y la rama `mis_prestamos`. **Pendiente de acordar con Fernando.**
+- `src/modules/Topbar/Topbar.jsx`, `src/index.css` y `src/lib/supabase.js` (28 oct 2026): nombre "Asociación Deportiva de Tiro con Arco de Occidente", `#root` sin ancho ni texto centrado, y sin `console.log(import.meta.env)`. **Pendiente de acordar con Fernando.**
 
 **Necesarios a futuro:**
-- `src/modules/dashboard/Dashboard.jsx`: tarjeta "Inventario" con dato real; `onClick` de "+ Agregar inventario".
-- `src/modules/Sidebar/Sidebar.jsx`: entrada para que el rol `usuario` vea sus préstamos.
 - RLS de `perfiles`: que staff pueda leer el nombre de quien registró cada movimiento (`registrado_por_nombre`).
 - Política o flujo para asignar `perfiles.arquero_id` (quién vincula un usuario con su arquero).
 - `arqueros_tipo_arco_id_fkey` (`ON DELETE SET NULL`): ya no aplica desde inventario, porque `tipos_arco` no se puede borrar por API (sección 1, Seguridad).

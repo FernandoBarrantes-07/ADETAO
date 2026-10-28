@@ -21,6 +21,8 @@ Alcance: módulo de clubes del Plan de Trabajo 3.1 (semanas 4–5), coordinado c
 
 Verificación del 24 oct 2026: `npx supabase db reset --local` aplicó 10 migraciones y el seed. `npx supabase test db --local`: Files=2, Tests=136, Result: PASS (109 de inventario y 27 de clubes). `npm run lint`: 0 errores; warnings previos en `Dashboard.jsx:29` (2) y `Arqueros.jsx:41` (1). `npm run build`: correcto. Prueba de humo en el navegador con los tres usuarios del seed. Al terminar, otro `db reset --local` dejó la base local en el seed.
 
+Verificación del 28 oct 2026: `npx supabase db reset --local` aplicó 11 migraciones (incluye `20261028120000_arqueros_rls.sql`) y el seed. `npx supabase test db --local`: Files=3, Tests=158, Result: PASS (109 de inventario, 27 de clubes y 22 de arqueros). `npm run lint`: 0 errores y 0 warnings. `npm run build`: correcto. Humo: el administrador sigue viendo Clubes y el contador de activos (2 con el seed). El profesor y el usuario no tienen menú Clubes. Nada se aplicó en DEV ni en producción.
+
 Fuentes de requisitos: `AUDITORIA_PROYECTO.md` §5.4 y `docs/ESTADO_PROYECTO.md` §5.4. `ADETAO_requerimientos.md` y `CHECKLIST.md` no están en el repo. `docs/ESTADO_PROYECTO.md` §5.4 quedó desactualizado: la pantalla de Clubes ya existe. `docs/db_schema.json` es el snapshot anterior a esta migración: sus políticas de `clubes` siguen siendo las del baseline (`USING (true)`).
 
 ---
@@ -107,7 +109,7 @@ Arqueros, el RLS de `arqueros`, `perfiles`, el sidebar, el dashboard y `App.jsx`
 
 - [~] `es_admin()` — evidencia: `20261009150000_base_roles.sql`, archivo marcado "PENDIENTE DE ACORDAR CON FERNANDO". Las políticas `clubes: admin inserta` y `clubes: admin actualiza` ya la llaman. Falta el acuerdo sobre la definición de la función.
 - [~] Cableado en el dashboard — hecho en `6ff07c9`, pendiente de acordar. `Dashboard.jsx`: import de `Clubes`, rama `activeMenu === 'clubes'`, contador de activos y el botón "+ Registrar club" solo si `esAdmin`. `Sidebar.jsx` no cambió.
-- [~] Leer arqueros de un club — hecho contra el RLS actual del baseline: "Usuarios autenticados pueden consultar arqueros", `USING (true)`. `contarArquerosClub` y `listarArquerosClub` leen `arqueros`. Si Fernando cierra ese RLS, el conteo y la ficha dejan de verse para quien no entre en la política nueva. La identificación de la ficha se oculta en la UI para el rol `usuario` (la consulta no la pide); el RLS de `arqueros` sigue permitiendo leerla por la API. Eso es de Fernando.
+- [~] Leer arqueros de un club — `contarArquerosClub` y `listarArquerosClub` leen `arqueros`. Desde `20261028120000_arqueros_rls.sql` ya no depende de `USING (true)`: el staff lee todos los arqueros y el usuario solo el suyo. El administrador y el profesor siguen viendo el conteo y la ficha. La identificación de la ficha se oculta en la UI para el rol `usuario`. **Pendiente de acordar con Fernando.**
 - [x] `arqueros_club_id_fkey` quedó igual — `ON UPDATE CASCADE ON DELETE SET NULL`. Ninguna migración de clubes la recrea. La pantalla no borra clubes, así que el `SET NULL` no se dispara desde la UI.
 - [x] El seed de clubes no asigna `arqueros.club_id` — `supabase/seed.sql` agrega los tres clubes y el `INSERT` de arqueros sigue sin esa columna. Solo local.
 
