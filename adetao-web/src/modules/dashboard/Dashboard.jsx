@@ -74,6 +74,7 @@ function Dashboard({ session }) {
           profile={profile}
           totalClubes={totalClubes}
           esAdmin={profile?.rol === 'administrador'}
+          esUsuario={profile?.rol === 'usuario'}
           onRegistrarClub={() => setActiveMenu('clubes')}
         />
       )
@@ -94,6 +95,7 @@ function Dashboard({ session }) {
     if (activeMenu === 'arqueros') {
   return (
     <Arqueros
+      profile={profile}
       onDataChange={cargarDatos}
     />
   )
@@ -157,7 +159,7 @@ function obtenerTituloModulo(menu) {
   return titulos[menu] || 'Módulo'
 }
 
-function Inicio({ arqueros, profile, totalClubes, esAdmin, onRegistrarClub }) {
+function Inicio({ arqueros, profile, totalClubes, esAdmin, esUsuario, onRegistrarClub }) {
   return (
     <div>
 
@@ -175,16 +177,18 @@ function Inicio({ arqueros, profile, totalClubes, esAdmin, onRegistrarClub }) {
 
       <div className="stats-grid">
 
-        <div className="stat-card">
-          <div className="stat-icon">
-            ♙
-          </div>
+        {!esUsuario && (
+          <div className="stat-card">
+            <div className="stat-icon">
+              ♙
+            </div>
 
-          <div>
-            <span>Arqueros</span>
-            <strong>{arqueros.length}</strong>
+            <div>
+              <span>Arqueros</span>
+              <strong>{arqueros.length}</strong>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="stat-card">
           <div className="stat-icon">
@@ -221,6 +225,7 @@ function Inicio({ arqueros, profile, totalClubes, esAdmin, onRegistrarClub }) {
 
       </div>
 
+      {!esUsuario && (
       <div className="dashboard-grid">
 
         <div className="dashboard-card">
@@ -308,6 +313,7 @@ function Inicio({ arqueros, profile, totalClubes, esAdmin, onRegistrarClub }) {
         </div>
 
       </div>
+      )}
 
     </div>
   )

@@ -9,7 +9,8 @@ export const ESTADOS_PAGO = {
   vencido: 'Vencido',
 }
 
-function Arqueros({ onDataChange }) {
+function Arqueros({ onDataChange, profile }) {
+  const esAdmin = profile?.rol === 'administrador'
   const [arqueros, setArqueros] = useState([])
   const [clubes, setClubes] = useState([])
   const [tiposArco, setTiposArco] = useState([])
@@ -312,12 +313,14 @@ function Arqueros({ onDataChange }) {
           </p>
         </div>
 
-        <button
-          className="btn-primary"
-          onClick={abrirNuevo}
-        >
-          + Registrar arquero
-        </button>
+        {esAdmin && (
+          <button
+            className="btn-primary"
+            onClick={abrirNuevo}
+          >
+            + Registrar arquero
+          </button>
+        )}
       </div>
 
       {mensaje && (
@@ -376,10 +379,12 @@ function Arqueros({ onDataChange }) {
                 ? 'No se encontraron resultados para la búsqueda.'
                 : arqueros.length > 0
                   ? 'No hay arqueros activos. Marque "Mostrar inactivos" para verlos.'
-                  : 'Registre el primer arquero para comenzar.'}
+                  : esAdmin
+                    ? 'Registre el primer arquero para comenzar.'
+                    : 'No hay arqueros para mostrar.'}
             </p>
 
-            {!busqueda && arqueros.length === 0 && (
+            {esAdmin && !busqueda && arqueros.length === 0 && (
               <button
                 className="btn-primary"
                 onClick={abrirNuevo}
@@ -402,7 +407,7 @@ function Arqueros({ onDataChange }) {
                   <th>Categoría</th>
                   <th>Pago</th>
                   <th>Estado</th>
-                  <th>Acciones</th>
+                  {esAdmin && <th>Acciones</th>}
                 </tr>
               </thead>
 
@@ -461,27 +466,29 @@ function Arqueros({ onDataChange }) {
                       </span>
                     </td>
 
-                    <td>
-                      <div className="action-buttons">
+                    {esAdmin && (
+                      <td>
+                        <div className="action-buttons">
 
-                        <button
-                          className="btn-edit"
-                          title="Editar"
-                          onClick={() => abrirEditar(arquero)}
-                        >
-                          ✎
-                        </button>
+                          <button
+                            className="btn-edit"
+                            title="Editar"
+                            onClick={() => abrirEditar(arquero)}
+                          >
+                            ✎
+                          </button>
 
-                        <button
-                          className="btn-estado"
-                          title={arquero.estado === 'activo' ? 'Desactivar' : 'Reactivar'}
-                          onClick={() => cambiarEstado(arquero)}
-                        >
-                          {arquero.estado === 'activo' ? 'Desactivar' : 'Reactivar'}
-                        </button>
+                          <button
+                            className="btn-estado"
+                            title={arquero.estado === 'activo' ? 'Desactivar' : 'Reactivar'}
+                            onClick={() => cambiarEstado(arquero)}
+                          >
+                            {arquero.estado === 'activo' ? 'Desactivar' : 'Reactivar'}
+                          </button>
 
-                      </div>
-                    </td>
+                        </div>
+                      </td>
+                    )}
 
                   </tr>
                 ))}
